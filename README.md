@@ -2,6 +2,16 @@
 
 App rapida para recordatorios de medicinas hecha con Bun, SQLite3 y Web Push. Esta pensada para desplegarse desde GitHub en EasyPanel usando el `Dockerfile` incluido.
 
+Cada medicina guarda:
+
+- Nombre.
+- Dosis.
+- Cada cuantas horas se toma.
+- Por cuantos dias dura el tratamiento.
+- Notas.
+
+El conteo empieza cuando guardas la medicina. Por ejemplo, si guardas `cada 8 horas` por `3 dias`, la app programa el siguiente aviso 8 horas despues y deja de avisar al completar esos 3 dias. Para una semana escribe `7` en `Por tantos dias`.
+
 ## Stack
 
 - Bun como servidor HTTP.

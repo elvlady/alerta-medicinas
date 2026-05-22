@@ -40,6 +40,11 @@ CREATE TABLE IF NOT EXISTS medicines (
   name TEXT NOT NULL,
   dose TEXT NOT NULL DEFAULT '',
   time_of_day TEXT NOT NULL,
+  interval_hours INTEGER NOT NULL DEFAULT 24,
+  duration_days INTEGER,
+  start_at TEXT,
+  last_notified_at TEXT,
+  next_reminder_at TEXT,
   notes TEXT NOT NULL DEFAULT '',
   active INTEGER NOT NULL DEFAULT 1,
   last_notified_on TEXT,
@@ -70,6 +75,20 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 `);
+
+function ensureColumn(table, column, definition) {
+  const exists = db.query(`PRAGMA table_info(${table})`).all().some((row) => row.name === column);
+  if (!exists) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+  }
+}
+
+ensureColumn("medicines", "interval_hours", "interval_hours INTEGER NOT NULL DEFAULT 24");
+ensureColumn("medicines", "duration_days", "duration_days INTEGER");
+ensureColumn("medicines", "start_at", "start_at TEXT");
+ensureColumn("medicines", "last_notified_at", "last_notified_at TEXT");
+ensureColumn("medicines", "next_reminder_at", "next_reminder_at TEXT");
+db.exec("CREATE INDEX IF NOT EXISTS medicines_next_reminder_idx ON medicines(active, next_reminder_at)");
 
 class AppError extends Error {
   constructor(status, message) {
@@ -250,27 +269,112 @@ function requireString(data, key, label) {
   return value;
 }
 
-function normalizeTime(value) {
-  const time = String(value || "").trim();
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-    throw new AppError(400, "La hora debe tener formato HH:MM.");
+function normalizeIntervalHours(value) {
+  const hours = Number(value);
+  if (!Number.isInteger(hours) || hours < 1 || hours > 168) {
+    throw new AppError(400, "Cada horas debe ser entre 1 y 168.");
   }
-  return time;
+  return hours;
+}
+
+function normalizeDurationDays(value) {
+  const days = Number(value);
+  if (!Number.isInteger(days) || days < 1 || days > 3650) {
+    throw new AppError(400, "Por tantos dias debe ser entre 1 y 3650.");
+  }
+  return days;
+}
+
+function addHoursIso(value, hours) {
+  const date = new Date(value);
+  date.setTime(date.getTime() + hours * 60 * 60 * 1000);
+  return date.toISOString();
+}
+
+function addDaysIso(value, days) {
+  const date = new Date(value);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
+function validIso(value) {
+  return value && !Number.isNaN(Date.parse(value));
+}
+
+function treatmentEndAt(row) {
+  if (!validIso(row.start_at) || !row.duration_days) return null;
+  return addDaysIso(row.start_at, row.duration_days);
+}
+
+function treatmentStatus(row, now = new Date()) {
+  const startAt = validIso(row.start_at) ? new Date(row.start_at) : null;
+  const endsAt = treatmentEndAt(row);
+
+  if (startAt && now < startAt) return "pending";
+  if (endsAt && now > new Date(endsAt)) return "completed";
+  return "active";
+}
+
+function isTreatmentActiveOn(row, now) {
+  return treatmentStatus(row, now) === "active";
+}
+
+function nextReminderAfter(row, now = new Date()) {
+  const intervalHours = row.interval_hours || 24;
+  let nextMs = Date.parse(row.next_reminder_at || addHoursIso(row.start_at || now.toISOString(), intervalHours));
+  if (Number.isNaN(nextMs)) {
+    nextMs = Date.parse(addHoursIso(now.toISOString(), intervalHours));
+  }
+
+  const intervalMs = intervalHours * 60 * 60 * 1000;
+  while (nextMs <= now.getTime()) {
+    nextMs += intervalMs;
+  }
+
+  const endsAt = treatmentEndAt(row);
+  if (endsAt && nextMs > Date.parse(endsAt)) {
+    return null;
+  }
+  return new Date(nextMs).toISOString();
 }
 
 function normalizeMedicine(row) {
+  const intervalHours = row.interval_hours || 24;
+  const durationDays = row.duration_days || 7;
+  const startAt = row.start_at || row.created_at;
+  const normalizedRow = { ...row, interval_hours: intervalHours, duration_days: durationDays, start_at: startAt };
   return {
     id: row.id,
     name: row.name,
     dose: row.dose,
-    timeOfDay: row.time_of_day,
+    intervalHours,
+    durationDays,
+    startAt,
+    endsAt: treatmentEndAt(normalizedRow),
+    nextReminderAt: row.next_reminder_at || null,
+    treatmentStatus: treatmentStatus(normalizedRow),
     notes: row.notes,
     active: Boolean(row.active),
-    lastNotifiedOn: row.last_notified_on || null,
+    lastNotifiedAt: row.last_notified_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
+
+function backfillReminderSchedule() {
+  const timestamp = nowIso();
+  const nextReminderAt = addHoursIso(timestamp, 24);
+  db.query(`
+    UPDATE medicines
+    SET interval_hours = COALESCE(interval_hours, 24),
+        duration_days = COALESCE(duration_days, 7),
+        start_at = COALESCE(start_at, created_at, $timestamp),
+        next_reminder_at = COALESCE(next_reminder_at, $nextReminderAt)
+    WHERE start_at IS NULL OR next_reminder_at IS NULL OR duration_days IS NULL
+  `).run({ $timestamp: timestamp, $nextReminderAt: nextReminderAt });
+}
+
+backfillReminderSchedule();
 
 function getSetting(key) {
   const row = db.query("SELECT value FROM settings WHERE key = $key").get({ $key: key });
@@ -306,26 +410,6 @@ function setupVapid() {
 
 const vapidPublicKey = setupVapid();
 
-function timezoneParts(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: APP_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date).reduce((acc, part) => {
-    acc[part.type] = part.value;
-    return acc;
-  }, {});
-
-  return {
-    today: `${parts.year}-${parts.month}-${parts.day}`,
-    timeOfDay: `${parts.hour}:${parts.minute}`,
-  };
-}
-
 async function sendPush(subscription, payload) {
   try {
     await webpush.sendNotification({
@@ -356,17 +440,24 @@ async function sendDueReminders() {
   if (reminderRunning) return;
   reminderRunning = true;
   try {
-    const { today, timeOfDay } = timezoneParts();
+    const now = new Date();
+    const timestamp = now.toISOString();
     const medicines = db.query(`
-      SELECT id, user_id, name, dose, notes
+      SELECT id, user_id, name, dose, notes, interval_hours, duration_days, start_at, next_reminder_at
       FROM medicines
       WHERE active = 1
-        AND time_of_day = $timeOfDay
-        AND (last_notified_on IS NULL OR last_notified_on <> $today)
+        AND next_reminder_at IS NOT NULL
+        AND next_reminder_at <= $now
       ORDER BY user_id, name
-    `).all({ $timeOfDay: timeOfDay, $today: today });
+    `).all({ $now: timestamp });
 
     for (const medicine of medicines) {
+      if (!isTreatmentActiveOn(medicine, now)) {
+        db.query("UPDATE medicines SET active = 0, next_reminder_at = NULL, updated_at = $updatedAt WHERE id = $id")
+          .run({ $updatedAt: timestamp, $id: medicine.id });
+        continue;
+      }
+
       const subscriptions = db.query(`
         SELECT endpoint, public_key, auth_token, content_encoding
         FROM push_subscriptions
@@ -379,15 +470,28 @@ async function sendDueReminders() {
         const ok = await sendPush(subscription, {
           title: "Hora de medicina",
           body,
-          tag: `medicine-${medicine.id}-${today}`,
+          tag: `medicine-${medicine.id}`,
           url: "/",
         });
         delivered = delivered || ok;
       }
 
       if (delivered) {
-        db.query("UPDATE medicines SET last_notified_on = $today, updated_at = $updatedAt WHERE id = $id")
-          .run({ $today: today, $updatedAt: nowIso(), $id: medicine.id });
+        const nextReminderAt = nextReminderAfter(medicine, now);
+        db.query(`
+          UPDATE medicines
+          SET last_notified_at = $lastNotifiedAt,
+              next_reminder_at = $nextReminderAt,
+              active = $active,
+              updated_at = $updatedAt
+          WHERE id = $id
+        `).run({
+          $lastNotifiedAt: timestamp,
+          $nextReminderAt: nextReminderAt,
+          $active: nextReminderAt ? 1 : 0,
+          $updatedAt: timestamp,
+          $id: medicine.id,
+        });
       }
     }
   } finally {
@@ -469,7 +573,7 @@ async function handleApi(req, url) {
     const medicines = db.query(`
       SELECT * FROM medicines
       WHERE user_id = $userId
-      ORDER BY active DESC, time_of_day ASC, name ASC
+      ORDER BY active DESC, next_reminder_at ASC, name ASC
     `).all({ $userId: user.id }).map(normalizeMedicine);
     return json({ ok: true, medicines });
   }
@@ -478,15 +582,22 @@ async function handleApi(req, url) {
     const data = await readJson(req);
     const id = randomUUID();
     const timestamp = nowIso();
+    const intervalHours = normalizeIntervalHours(data.intervalHours);
+    const durationDays = normalizeDurationDays(data.durationDays);
+    const nextReminderAt = addHoursIso(timestamp, intervalHours);
     db.query(`
-      INSERT INTO medicines (id, user_id, name, dose, time_of_day, notes, active, created_at, updated_at)
-      VALUES ($id, $userId, $name, $dose, $timeOfDay, $notes, $active, $createdAt, $updatedAt)
+      INSERT INTO medicines (id, user_id, name, dose, time_of_day, interval_hours, duration_days, start_at, next_reminder_at, notes, active, created_at, updated_at)
+      VALUES ($id, $userId, $name, $dose, $timeOfDay, $intervalHours, $durationDays, $startAt, $nextReminderAt, $notes, $active, $createdAt, $updatedAt)
     `).run({
       $id: id,
       $userId: user.id,
       $name: requireString(data, "name", "Nombre"),
       $dose: String(data.dose || "").trim(),
-      $timeOfDay: normalizeTime(data.timeOfDay),
+      $timeOfDay: "00:00",
+      $intervalHours: intervalHours,
+      $durationDays: durationDays,
+      $startAt: timestamp,
+      $nextReminderAt: nextReminderAt,
       $notes: String(data.notes || "").trim(),
       $active: data.active === false ? 0 : 1,
       $createdAt: timestamp,
@@ -500,22 +611,47 @@ async function handleApi(req, url) {
   if (medicineMatch && (method === "PUT" || method === "PATCH")) {
     const id = medicineMatch[1];
     const data = await readJson(req);
-    const existing = db.query("SELECT id FROM medicines WHERE id = $id AND user_id = $userId")
+    const existing = db.query("SELECT * FROM medicines WHERE id = $id AND user_id = $userId")
       .get({ $id: id, $userId: user.id });
     if (!existing) throw new AppError(404, "Medicina no encontrada.");
+    const timestamp = nowIso();
+    const intervalHours = normalizeIntervalHours(data.intervalHours);
+    const durationDays = normalizeDurationDays(data.durationDays);
+    const active = data.active === false ? 0 : 1;
+    const intervalChanged = intervalHours !== (existing.interval_hours || 24);
+    const durationChanged = durationDays !== (existing.duration_days || 7);
+    const wasReactivated = !existing.active && active;
+    const shouldResetSchedule = intervalChanged || durationChanged || wasReactivated || !existing.start_at;
+    const startAt = shouldResetSchedule ? timestamp : existing.start_at;
+    const nextReminderAt = active
+      ? (shouldResetSchedule || !existing.next_reminder_at ? addHoursIso(timestamp, intervalHours) : existing.next_reminder_at)
+      : null;
     db.query(`
       UPDATE medicines
-      SET name = $name, dose = $dose, time_of_day = $timeOfDay, notes = $notes, active = $active, updated_at = $updatedAt
+      SET name = $name,
+          dose = $dose,
+          time_of_day = $timeOfDay,
+          interval_hours = $intervalHours,
+          duration_days = $durationDays,
+          start_at = $startAt,
+          next_reminder_at = $nextReminderAt,
+          notes = $notes,
+          active = $active,
+          updated_at = $updatedAt
       WHERE id = $id AND user_id = $userId
     `).run({
       $id: id,
       $userId: user.id,
       $name: requireString(data, "name", "Nombre"),
       $dose: String(data.dose || "").trim(),
-      $timeOfDay: normalizeTime(data.timeOfDay),
+      $timeOfDay: "00:00",
+      $intervalHours: intervalHours,
+      $durationDays: durationDays,
+      $startAt: startAt,
+      $nextReminderAt: nextReminderAt,
       $notes: String(data.notes || "").trim(),
-      $active: data.active === false ? 0 : 1,
-      $updatedAt: nowIso(),
+      $active: active,
+      $updatedAt: timestamp,
     });
     const medicine = db.query("SELECT * FROM medicines WHERE id = $id").get({ $id: id });
     return json({ ok: true, medicine: normalizeMedicine(medicine) });

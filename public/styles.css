@@ -170,7 +170,7 @@ label span {
 
 .medicine-form {
   display: grid;
-  grid-template-columns: minmax(170px, 1.2fr) minmax(140px, .9fr) 130px minmax(180px, 1.4fr) auto auto;
+  grid-template-columns: minmax(160px, 1.1fr) minmax(120px, .8fr) 110px 140px minmax(170px, 1.2fr) auto auto;
   gap: 12px;
   align-items: end;
 }

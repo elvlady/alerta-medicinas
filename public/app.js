@@ -54,7 +54,8 @@ function medicinePayload() {
   return {
     name: $("#medicine-name").value.trim(),
     dose: $("#medicine-dose").value.trim(),
-    timeOfDay: $("#medicine-time").value,
+    intervalHours: Number($("#medicine-interval").value),
+    durationDays: Number($("#medicine-duration").value),
     notes: $("#medicine-notes").value.trim(),
     active: $("#medicine-active").checked,
   };
@@ -63,6 +64,8 @@ function medicinePayload() {
 function resetMedicineForm() {
   $("#medicine-id").value = "";
   $("#medicine-form").reset();
+  $("#medicine-interval").value = "8";
+  $("#medicine-duration").value = "7";
   $("#medicine-active").checked = true;
   $("#save-button").textContent = "Guardar";
   $("#cancel-edit").hidden = true;
@@ -72,12 +75,34 @@ function editMedicine(medicine) {
   $("#medicine-id").value = medicine.id;
   $("#medicine-name").value = medicine.name;
   $("#medicine-dose").value = medicine.dose || "";
-  $("#medicine-time").value = medicine.timeOfDay;
+  $("#medicine-interval").value = medicine.intervalHours || 8;
+  $("#medicine-duration").value = medicine.durationDays || 7;
   $("#medicine-notes").value = medicine.notes || "";
   $("#medicine-active").checked = medicine.active;
   $("#save-button").textContent = "Actualizar";
   $("#cancel-edit").hidden = false;
   $("#medicine-name").focus();
+}
+
+function formatDuration(days) {
+  if (days === 7) return "7 dias (1 semana)";
+  if (days > 7 && days % 7 === 0) return `${days} dias (${days / 7} semanas)`;
+  return `${days} ${days === 1 ? "dia" : "dias"}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("es-MX", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function statusText(medicine) {
+  if (!medicine.active) return "Pausada";
+  if (medicine.treatmentStatus === "completed") return "Completada";
+  if (medicine.treatmentStatus === "pending") return "Pendiente";
+  return "Activa";
 }
 
 function renderMedicines() {
@@ -93,16 +118,20 @@ function renderMedicines() {
 
   for (const medicine of state.medicines) {
     const card = document.createElement("article");
-    card.className = `medicine-card${medicine.active ? "" : " inactive"}`;
+    const isLive = medicine.active && medicine.treatmentStatus !== "completed";
+    card.className = `medicine-card${isLive ? "" : " inactive"}`;
     const dose = medicine.dose ? `<span>${escapeHtml(medicine.dose)}</span>` : "";
+    const interval = `<span>Cada ${escapeHtml(medicine.intervalHours || 8)} h</span>`;
+    const duration = `<span>${escapeHtml(formatDuration(medicine.durationDays || 7))}</span>`;
+    const next = medicine.nextReminderAt && isLive ? `<span>Siguiente: ${escapeHtml(formatDateTime(medicine.nextReminderAt))}</span>` : "";
     const notes = medicine.notes ? `<span>${escapeHtml(medicine.notes)}</span>` : "";
     card.innerHTML = `
       <div>
         <div class="medicine-title">
           <strong>${escapeHtml(medicine.name)}</strong>
-          <span class="time-pill">${escapeHtml(medicine.timeOfDay)}</span>
+          <span class="time-pill">${escapeHtml(statusText(medicine))}</span>
         </div>
-        <div class="medicine-meta">${[dose, notes].filter(Boolean).join(" · ")}</div>
+        <div class="medicine-meta">${[dose, interval, duration, next, notes].filter(Boolean).join(" - ")}</div>
       </div>
       <div class="button-row">
         <button type="button" data-action="edit">Editar</button>
@@ -260,6 +289,8 @@ $("#cancel-edit").addEventListener("click", resetMedicineForm);
 $("#push-button").addEventListener("click", activatePush);
 $("#test-push-button").addEventListener("click", testPush);
 $("#logout-button").addEventListener("click", logout);
+
+resetMedicineForm();
 
 boot().catch((error) => {
   setAuthMode(false);
