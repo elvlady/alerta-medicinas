@@ -735,6 +735,15 @@ const mimeTypes = {
   ".ico": "image/x-icon",
 };
 
+function staticCacheControl(pathname) {
+  if (pathname === "/sw.js") return "no-cache";
+  const extension = extname(pathname);
+  if (extension === ".html" || extension === ".js" || extension === ".css" || extension === ".webmanifest") {
+    return "no-cache";
+  }
+  return "public, max-age=86400";
+}
+
 async function serveStatic(url) {
   let pathname = decodeURIComponent(url.pathname);
   if (pathname === "/") pathname = "/index.html";
@@ -756,7 +765,7 @@ async function serveStatic(url) {
   return new Response(file, {
     headers: {
       "content-type": mimeTypes[extname(filePath)] || "application/octet-stream",
-      "cache-control": pathname === "/sw.js" ? "no-cache" : "public, max-age=3600",
+      "cache-control": staticCacheControl(pathname),
     },
   });
 }
