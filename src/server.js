@@ -160,6 +160,49 @@ function publicUser(user) {
   return { id: user.id, username: user.username, name: user.name };
 }
 
+function syncAdminFromEnv() {
+  const username = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
+  const password = String(process.env.ADMIN_PASSWORD || "");
+  const name = String(process.env.ADMIN_NAME || username).trim();
+
+  if (!username && !password) return;
+  if (!username || !password) {
+    console.warn("ADMIN_USERNAME y ADMIN_PASSWORD deben configurarse juntos; se omitio el admin por entorno.");
+    return;
+  }
+  if (password.length < 8) {
+    console.warn("ADMIN_PASSWORD debe tener al menos 8 caracteres; se omitio el admin por entorno.");
+    return;
+  }
+
+  const existing = db.query("SELECT id FROM users WHERE username = $username").get({ $username: username });
+  const passwordHash = hashPassword(password);
+  const timestamp = nowIso();
+
+  if (existing) {
+    db.query("UPDATE users SET name = $name, password_hash = $passwordHash WHERE id = $id")
+      .run({ $id: existing.id, $name: name || username, $passwordHash: passwordHash });
+    db.query("DELETE FROM sessions WHERE user_id = $id").run({ $id: existing.id });
+    console.log(`Admin ${username} actualizado desde variables de entorno.`);
+    return;
+  }
+
+  const id = randomUUID();
+  db.query(`
+    INSERT INTO users (id, username, name, password_hash, created_at)
+    VALUES ($id, $username, $name, $passwordHash, $createdAt)
+  `).run({
+    $id: id,
+    $username: username,
+    $name: name || username,
+    $passwordHash: passwordHash,
+    $createdAt: timestamp,
+  });
+  console.log(`Admin ${username} creado desde variables de entorno.`);
+}
+
+syncAdminFromEnv();
+
 function getUserFromRequest(req) {
   const sid = parseCookies(req.headers.get("cookie")).med_session;
   if (!sid) return null;

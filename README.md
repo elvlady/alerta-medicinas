@@ -29,13 +29,18 @@ En el primer acceso la app pide crear el usuario admin.
 ```ini
 PORT=3000
 DATA_DIR=/app/data
-APP_TIMEZONE=America/Chihuahua
+APP_TIMEZONE=America/Mazatlan
 VAPID_SUBJECT=mailto:admin@example.com
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+ADMIN_NAME=
 ```
 
 Las llaves VAPID son opcionales. Si no las configuras, la app las genera y las guarda en SQLite. En produccion, monta `/app/data` como volumen para no perder usuarios, medicinas, sesiones, suscripciones push ni llaves VAPID.
+
+`ADMIN_USERNAME` y `ADMIN_PASSWORD` tambien son opcionales. Si los defines, la app crea ese admin o actualiza su contrasena al arrancar. Esto sirve para recuperar acceso si olvidaste la contrasena guardada en SQLite.
 
 ## Docker
 
@@ -59,8 +64,10 @@ docker run --rm -p 3000:3000 -v alerta-medicinas-data:/app/data alerta-medicinas
 6. Agrega variables:
 
 ```ini
-APP_TIMEZONE=America/Chihuahua
+APP_TIMEZONE=America/Mazatlan
 VAPID_SUBJECT=mailto:tu-correo@tudominio.com
+ADMIN_USERNAME=zeus
+ADMIN_PASSWORD=una-contrasena-larga
 ```
 
 7. Publica con HTTPS.
