@@ -406,46 +406,85 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-async function activatePush() {
+function uint8ArrayToBase64Url(value) {
+  let binary = "";
+  for (const byte of value) {
+    binary += String.fromCharCode(byte);
+  }
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function setPushStatus(message) {
   const status = $("#push-status");
   const pushButton = $("#push-button");
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-    status.textContent = "Este navegador no soporta push";
-    pushButton.disabled = true;
+  status.textContent = message;
+  pushButton.setAttribute("aria-label", `Activar notificaciones. ${message}`);
+  pushButton.title = message;
+}
+
+function subscriptionMatchesCurrentKey(subscription) {
+  const applicationServerKey = subscription?.options?.applicationServerKey;
+  if (!applicationServerKey || !state.pushPublicKey) return true;
+  return uint8ArrayToBase64Url(new Uint8Array(applicationServerKey)) === state.pushPublicKey;
+}
+
+async function pushRegistration() {
+  const registration = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.ready;
+  return registration;
+}
+
+async function currentPushSubscription(registration) {
+  let subscription = await registration.pushManager.getSubscription();
+  if (subscription && !subscriptionMatchesCurrentKey(subscription)) {
+    await subscription.unsubscribe();
+    subscription = null;
+  }
+  return subscription;
+}
+
+async function savePushSubscription(subscription) {
+  const payload = subscription.toJSON();
+  payload.contentEncoding = "aes128gcm";
+  await api("/api/push/subscribe", {
+    method: "POST",
+    body: JSON.stringify({ subscription: payload }),
+  });
+}
+
+async function activatePush() {
+  const pushButton = $("#push-button");
+  if (!window.isSecureContext || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    setPushStatus("Este navegador no soporta push. Abre la PWA instalada por HTTPS.");
     return;
   }
   pushButton.disabled = true;
   pushButton.classList.add("is-busy");
   try {
-    status.textContent = "Solicitando permiso";
+    setPushStatus("Solicitando permiso");
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      status.textContent = "Permiso denegado";
+      setPushStatus("Permiso denegado");
       pushButton.classList.remove("is-on");
       pushButton.setAttribute("aria-pressed", "false");
       return;
     }
 
-    status.textContent = "Registrando dispositivo";
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    let subscription = await registration.pushManager.getSubscription();
+    setPushStatus("Registrando dispositivo");
+    const registration = await pushRegistration();
+    let subscription = await currentPushSubscription(registration);
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(state.pushPublicKey),
       });
     }
-    const payload = subscription.toJSON();
-    payload.contentEncoding = "aes128gcm";
-    await api("/api/push/subscribe", {
-      method: "POST",
-      body: JSON.stringify({ subscription: payload }),
-    });
-    status.textContent = "Activas";
+    await savePushSubscription(subscription);
+    setPushStatus("Activas");
     pushButton.classList.add("is-on");
     pushButton.setAttribute("aria-pressed", "true");
   } catch (error) {
-    status.textContent = error.message;
+    setPushStatus(error.message || "No se pudieron activar");
     pushButton.classList.remove("is-on");
     pushButton.setAttribute("aria-pressed", "false");
   } finally {
@@ -456,25 +495,26 @@ async function activatePush() {
 
 async function refreshPushSwitch() {
   const pushButton = $("#push-button");
-  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-    pushButton.disabled = true;
-    $("#push-status").textContent = "Este navegador no soporta push";
+  if (!window.isSecureContext || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    setPushStatus("Este navegador no soporta push");
     return;
   }
   if (Notification.permission !== "granted") {
     pushButton.classList.remove("is-on");
     pushButton.setAttribute("aria-pressed", "false");
+    setPushStatus("Listo para activar");
     return;
   }
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js");
-    const subscription = await registration.pushManager.getSubscription();
+    const registration = await pushRegistration();
+    const subscription = await currentPushSubscription(registration);
     pushButton.classList.toggle("is-on", Boolean(subscription));
     pushButton.setAttribute("aria-pressed", subscription ? "true" : "false");
-    $("#push-status").textContent = subscription ? "Activas" : "Listo para activar";
+    setPushStatus(subscription ? "Activas" : "Listo para activar");
   } catch {
     pushButton.classList.remove("is-on");
     pushButton.setAttribute("aria-pressed", "false");
+    setPushStatus("Listo para activar");
   }
 }
 
