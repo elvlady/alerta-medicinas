@@ -1364,13 +1364,23 @@ html body .schedule-details span {
 }
 
 html body .schedule-actions {
-  height: 100%;
-  display: grid;
+  width: 42px;
+  height: auto;
+  min-height: 78px;
+  display: grid !important;
+  grid-column: auto !important;
+  grid-row: 1 !important;
   place-items: center;
-  align-self: center;
+  align-self: stretch;
+  justify-self: end;
+  justify-content: center;
+  border-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 html body .schedule-actions .dose-state {
   width: 38px;
   height: 38px;
+  min-height: 38px;
+  padding: 0;
 }
