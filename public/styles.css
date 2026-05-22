@@ -1021,3 +1021,57 @@ body.form-open .fab-button {
     transform: none;
   }
 }
+
+/* Final simplified app surface: top bar, schedule, add button, modal. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.push-strip,
+.bottom-nav,
+#toggle-form-button {
+  display: none !important;
+}
+
+.top-actions {
+  align-items: flex-start;
+}
+
+#push-button {
+  min-height: 34px;
+  max-width: 150px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 43, 61, .08);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+  padding: 8px 12px;
+}
+
+#push-button:disabled {
+  opacity: .72;
+}
+
+.shell {
+  padding-bottom: 98px;
+}
+
+.medicine-list {
+  padding-top: 4px;
+}
+
+.fab-button {
+  bottom: 22px;
+}
+
+body.form-open .fab-button {
+  display: none !important;
+}

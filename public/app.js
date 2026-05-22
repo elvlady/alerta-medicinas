@@ -50,14 +50,12 @@ function showApp() {
   clearAuthFields();
   $("#auth-view").hidden = true;
   $("#app-view").hidden = false;
-  $("#user-label").textContent = state.user ? state.user.username : "";
   setFormOpen(false);
 }
 
 function setFormOpen(open) {
   state.formOpen = open;
   document.body.classList.toggle("form-open", open);
-  $("#toggle-form-button").textContent = open ? "Cerrar" : "Agregar";
   $("#form-title").textContent = $("#medicine-id").value ? "Editar medicina" : "Nueva medicina";
 }
 
@@ -169,22 +167,6 @@ function renderMedicines() {
     items = state.medicines.map(nextFallbackItem).filter(Boolean);
   }
   items.sort((a, b) => a.date - b.date);
-
-  const nextItem = items.find((item) => !item.completed);
-  if (nextItem) {
-    const { time, period } = timeParts(nextItem.date);
-    const nextCard = document.createElement("div");
-    nextCard.className = "next-dose";
-    nextCard.innerHTML = `
-      <div>
-        <span>Siguiente toma</span>
-        <strong>${escapeHtml(nextItem.medicine.name)}</strong>
-        <small>${[nextItem.medicine.dose, `cada ${nextItem.medicine.intervalHours || 8} h`].filter(Boolean).map(escapeHtml).join(" - ")}</small>
-      </div>
-      <time>${escapeHtml(time)} <span>${escapeHtml(period)}</span></time>
-    `;
-    list.append(nextCard);
-  }
 
   const completed = items.filter((item) => item.completed).length;
   const header = document.createElement("div");
@@ -298,18 +280,22 @@ async function activatePush() {
   const status = $("#push-status");
   if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
     status.textContent = "Este navegador no soporta push";
+    $("#push-button").textContent = "No disponible";
     return;
   }
   $("#push-button").disabled = true;
   try {
     status.textContent = "Solicitando permiso";
+    $("#push-button").textContent = "Permitiendo...";
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       status.textContent = "Permiso denegado";
+      $("#push-button").textContent = "Activar notificaciones";
       return;
     }
 
     status.textContent = "Registrando dispositivo";
+    $("#push-button").textContent = "Activando...";
     const registration = await navigator.serviceWorker.register("/sw.js");
     let subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
@@ -325,22 +311,12 @@ async function activatePush() {
       body: JSON.stringify({ subscription: payload }),
     });
     status.textContent = "Activas";
+    $("#push-button").textContent = "Notificaciones activas";
   } catch (error) {
     status.textContent = error.message;
+    $("#push-button").textContent = "Activar notificaciones";
   } finally {
     $("#push-button").disabled = false;
-  }
-}
-
-async function testPush() {
-  $("#test-push-button").disabled = true;
-  try {
-    const data = await api("/api/push/test", { method: "POST", body: "{}" });
-    $("#push-status").textContent = data.sent ? "Prueba enviada" : "Activa push primero";
-  } catch (error) {
-    $("#push-status").textContent = error.message;
-  } finally {
-    $("#test-push-button").disabled = false;
   }
 }
 
@@ -385,18 +361,12 @@ async function boot() {
 $("#auth-form").addEventListener("submit", authenticate);
 $("#medicine-form").addEventListener("submit", saveMedicine);
 $("#cancel-edit").addEventListener("click", resetMedicineForm);
-$("#toggle-form-button").addEventListener("click", () => setFormOpen(!state.formOpen));
 $("#fab-button").addEventListener("click", () => {
-  resetMedicineForm();
-  setFormOpen(true);
-});
-$("#nav-medicines-button").addEventListener("click", () => {
   resetMedicineForm();
   setFormOpen(true);
 });
 $("#close-form-button").addEventListener("click", () => setFormOpen(false));
 $("#push-button").addEventListener("click", activatePush);
-$("#test-push-button").addEventListener("click", testPush);
 $("#logout-button").addEventListener("click", logout);
 
 resetMedicineForm();
