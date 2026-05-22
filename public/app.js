@@ -104,6 +104,14 @@ function formatDuration(days) {
   return `${days} ${days === 1 ? "dia" : "dias"}`;
 }
 
+function shortMedicineMeta(medicine) {
+  const dose = String(medicine.dose || "").trim();
+  const interval = Number(medicine.intervalHours || 8);
+  const duration = Number(medicine.durationDays || 7);
+  const durationText = `${duration}${duration === 1 ? "dia" : "dias"}`;
+  return [dose, "cd", `${interval}hr`, "x", durationText].filter(Boolean).join(" ");
+}
+
 function startOfToday(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
@@ -279,11 +287,7 @@ function renderMedicines() {
     const { time, period } = timeParts(item.date);
     const row = document.createElement("article");
     row.className = `schedule-item${item.completed ? " completed" : ""}`;
-    const dose = medicine.dose ? `<span>${escapeHtml(medicine.dose)}</span>` : "";
-    const notes = medicine.notes ? `<span>${escapeHtml(medicine.notes)}</span>` : "";
-    const meta = [dose, `<span>Cada ${escapeHtml(medicine.intervalHours || 8)} h</span>`, `<span>${escapeHtml(formatDuration(medicine.durationDays || 7))}</span>`, notes]
-      .filter(Boolean)
-      .join(" - ");
+    const meta = shortMedicineMeta(medicine);
     row.innerHTML = `
       <div class="schedule-time">
         <strong>${escapeHtml(time)}</strong>
@@ -299,7 +303,7 @@ function renderMedicines() {
           <div class="medicine-symbol" aria-hidden="true">=</div>
           <div class="schedule-details">
             <strong>${escapeHtml(medicine.name)}</strong>
-            <span>${meta}</span>
+            <span>${escapeHtml(meta)}</span>
           </div>
           <div class="schedule-actions">
             <button

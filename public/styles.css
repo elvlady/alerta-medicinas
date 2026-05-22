@@ -1334,3 +1334,43 @@ html body .fab-button {
   margin: 0 !important;
   transform: translateX(-50%) !important;
 }
+
+/* Mobile list polish: opaque cards and compact schedule details. */
+html body .schedule-item,
+html body .schedule-card,
+html body .schedule-details,
+html body .schedule-item.completed .schedule-details {
+  opacity: 1 !important;
+}
+
+html body .swipe-shell .schedule-card {
+  min-height: 78px;
+  grid-template-columns: 44px minmax(0, 1fr) 42px;
+  align-items: center;
+  background: #ffffff !important;
+}
+
+html body .schedule-details {
+  align-self: center;
+}
+
+html body .schedule-details span {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: #6f7784;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body .schedule-actions {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+
+html body .schedule-actions .dose-state {
+  width: 38px;
+  height: 38px;
+}
