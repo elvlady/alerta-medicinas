@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#177d6b">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=3">
-  <link rel="stylesheet" href="/styles.css?v=3">
-  <script type="module" src="/app.js?v=3"></script>
+  <link rel="manifest" href="/manifest.webmanifest?v=4">
+  <link rel="stylesheet" href="/styles.css?v=4">
+  <script type="module" src="/app.js?v=4"></script>
 </head>
 <body>
   <section class="auth-view" id="auth-view" hidden>
@@ -39,12 +39,20 @@
       </div>
       <div class="top-actions">
         <span id="user-label"></span>
+        <button type="button" id="toggle-form-button">Agregar</button>
         <button type="button" id="logout-button">Salir</button>
       </div>
     </header>
 
     <main class="shell">
-      <section class="panel">
+      <section class="panel medicine-panel" id="medicine-panel">
+        <div class="form-heading">
+          <div>
+            <p class="eyebrow">Tratamiento</p>
+            <h2 id="form-title">Nueva medicina</h2>
+          </div>
+          <button type="button" id="close-form-button">Cerrar</button>
+        </div>
         <form class="medicine-form" id="medicine-form">
           <input type="hidden" id="medicine-id">
           <label>
@@ -91,6 +99,7 @@
 
       <section class="medicine-list" id="medicine-list"></section>
     </main>
+    <button type="button" class="fab-button" id="fab-button" aria-label="Agregar medicina">+</button>
   </section>
 </body>
 </html>

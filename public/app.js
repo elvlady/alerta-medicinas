@@ -3,6 +3,7 @@ const state = {
   setupRequired: false,
   pushPublicKey: "",
   medicines: [],
+  formOpen: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -33,6 +34,8 @@ function setAuthMode(setupRequired) {
 }
 
 function showAuth() {
+  state.formOpen = false;
+  document.body.classList.remove("form-open");
   $("#auth-view").hidden = false;
   $("#app-view").hidden = true;
 }
@@ -48,6 +51,14 @@ function showApp() {
   $("#auth-view").hidden = true;
   $("#app-view").hidden = false;
   $("#user-label").textContent = state.user ? state.user.username : "";
+  setFormOpen(false);
+}
+
+function setFormOpen(open) {
+  state.formOpen = open;
+  document.body.classList.toggle("form-open", open);
+  $("#toggle-form-button").textContent = open ? "Cerrar" : "Agregar";
+  $("#form-title").textContent = $("#medicine-id").value ? "Editar medicina" : "Nueva medicina";
 }
 
 function medicinePayload() {
@@ -68,10 +79,12 @@ function resetMedicineForm() {
   $("#medicine-duration").value = "7";
   $("#medicine-active").checked = true;
   $("#save-button").textContent = "Guardar";
+  $("#form-title").textContent = "Nueva medicina";
   $("#cancel-edit").hidden = true;
 }
 
 function editMedicine(medicine) {
+  setFormOpen(true);
   $("#medicine-id").value = medicine.id;
   $("#medicine-name").value = medicine.name;
   $("#medicine-dose").value = medicine.dose || "";
@@ -80,6 +93,7 @@ function editMedicine(medicine) {
   $("#medicine-notes").value = medicine.notes || "";
   $("#medicine-active").checked = medicine.active;
   $("#save-button").textContent = "Actualizar";
+  $("#form-title").textContent = "Editar medicina";
   $("#cancel-edit").hidden = false;
   $("#medicine-name").focus();
 }
@@ -155,6 +169,22 @@ function renderMedicines() {
     items = state.medicines.map(nextFallbackItem).filter(Boolean);
   }
   items.sort((a, b) => a.date - b.date);
+
+  const nextItem = items.find((item) => !item.completed);
+  if (nextItem) {
+    const { time, period } = timeParts(nextItem.date);
+    const nextCard = document.createElement("div");
+    nextCard.className = "next-dose";
+    nextCard.innerHTML = `
+      <div>
+        <span>Siguiente toma</span>
+        <strong>${escapeHtml(nextItem.medicine.name)}</strong>
+        <small>${[nextItem.medicine.dose, `cada ${nextItem.medicine.intervalHours || 8} h`].filter(Boolean).map(escapeHtml).join(" - ")}</small>
+      </div>
+      <time>${escapeHtml(time)} <span>${escapeHtml(period)}</span></time>
+    `;
+    list.append(nextCard);
+  }
 
   const completed = items.filter((item) => item.completed).length;
   const header = document.createElement("div");
@@ -240,6 +270,7 @@ async function saveMedicine(event) {
     });
   }
   resetMedicineForm();
+  setFormOpen(false);
   await loadMedicines();
 }
 
@@ -350,6 +381,12 @@ async function boot() {
 $("#auth-form").addEventListener("submit", authenticate);
 $("#medicine-form").addEventListener("submit", saveMedicine);
 $("#cancel-edit").addEventListener("click", resetMedicineForm);
+$("#toggle-form-button").addEventListener("click", () => setFormOpen(!state.formOpen));
+$("#fab-button").addEventListener("click", () => {
+  resetMedicineForm();
+  setFormOpen(true);
+});
+$("#close-form-button").addEventListener("click", () => setFormOpen(false));
 $("#push-button").addEventListener("click", activatePush);
 $("#test-push-button").addEventListener("click", testPush);
 $("#logout-button").addEventListener("click", logout);

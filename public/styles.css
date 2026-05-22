@@ -1,15 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f6f7f9;
+  --bg: #eef2f7;
   --surface: #ffffff;
-  --surface-2: #eef3f2;
-  --line: #d5dedb;
-  --text: #15211f;
-  --muted: #66736f;
-  --accent: #177d6b;
-  --accent-2: #b7791f;
+  --surface-2: #edf5fb;
+  --line: #dde5ee;
+  --text: #1f2b3d;
+  --muted: #788392;
+  --accent: #3167bd;
+  --accent-2: #19a7b8;
+  --warm: #c48a2c;
   --danger: #ba3030;
-  --shadow: rgba(21, 33, 31, .08);
+  --shadow: rgba(31, 43, 61, .1);
 }
 
 * {
@@ -42,10 +43,12 @@ button {
   color: var(--text);
   padding: 8px 12px;
   cursor: pointer;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
 }
 
 button:hover {
   border-color: var(--accent);
+  box-shadow: 0 8px 18px rgba(49, 103, 189, .12);
 }
 
 button.primary {
@@ -113,7 +116,7 @@ label span {
 
 .eyebrow {
   margin: 0 0 6px;
-  color: var(--accent-2);
+  color: var(--warm);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -127,12 +130,16 @@ label span {
 
 .topbar {
   min-height: 68px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  border-bottom: 1px solid rgba(221, 229, 238, .82);
+  background: rgba(255, 255, 255, .92);
+  backdrop-filter: blur(14px);
   padding: 12px max(16px, calc((100vw - 1120px) / 2));
 }
 
@@ -144,6 +151,11 @@ label span {
   gap: 8px;
 }
 
+#toggle-form-button,
+#close-form-button {
+  display: none;
+}
+
 #user-label {
   color: var(--muted);
 }
@@ -153,6 +165,20 @@ label span {
   display: grid;
   gap: 14px;
   margin: 18px auto 48px;
+}
+
+.form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.form-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
 }
 
 .panel,
@@ -210,6 +236,54 @@ label span {
   gap: 0;
 }
 
+.next-dose {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid rgba(49, 103, 189, .18);
+  border-radius: 18px;
+  background: #f8fbff;
+  box-shadow: 0 14px 30px rgba(49, 103, 189, .12);
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.next-dose div,
+.next-dose time {
+  min-width: 0;
+}
+
+.next-dose span,
+.next-dose small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.next-dose strong {
+  display: block;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.1;
+  margin: 5px 0;
+}
+
+.next-dose time {
+  color: var(--accent);
+  font-size: 28px;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.next-dose time span {
+  display: inline;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .schedule-header {
   display: flex;
   align-items: center;
@@ -219,7 +293,7 @@ label span {
   font-size: 13px;
   font-weight: 800;
   letter-spacing: .06em;
-  margin-bottom: 10px;
+  margin: 4px 0 10px;
   text-transform: uppercase;
 }
 
@@ -299,6 +373,7 @@ label span {
   grid-template-columns: 46px 1fr auto;
   gap: 12px;
   align-items: center;
+  border-color: rgba(221, 229, 238, .9);
   border-radius: 18px;
   margin-bottom: 8px;
   padding: 12px 14px;
@@ -357,11 +432,25 @@ label span {
   border-radius: 999px;
   color: #ffffff;
   font-weight: 900;
+  font-size: 0;
 }
 
 .schedule-item.completed .dose-state {
   border-color: #6d92cf;
   background: #6d92cf;
+}
+
+.schedule-item.completed .dose-state::after {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-bottom: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.fab-button {
+  display: none;
 }
 
 .empty-state {
@@ -383,6 +472,23 @@ label span {
 }
 
 @media (max-width: 620px) {
+  body {
+    background: #eef2f7;
+  }
+
+  .app-view {
+    min-height: 100vh;
+    padding-bottom: 92px;
+  }
+
+  body.form-open .app-view::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: rgba(31, 43, 61, .32);
+  }
+
   .topbar,
   .push-strip {
     align-items: flex-start;
@@ -390,7 +496,12 @@ label span {
   }
 
   .topbar {
+    min-height: 64px;
     padding: 12px 14px;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
   }
 
   .top-actions,
@@ -399,13 +510,89 @@ label span {
     justify-content: space-between;
   }
 
+  #user-label {
+    display: none;
+  }
+
+  #toggle-form-button,
+  #close-form-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .shell {
+    width: min(100% - 22px, 560px);
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .medicine-panel {
+    display: none;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 45;
+    max-height: min(82vh, 680px);
+    overflow: auto;
+    border-radius: 22px;
+    padding: 16px;
+  }
+
+  body.form-open .medicine-panel {
+    display: block;
+  }
+
+  .form-heading {
+    position: sticky;
+    top: -16px;
+    z-index: 2;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    margin: -16px -16px 14px;
+    padding: 16px;
+  }
+
   .medicine-form {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .medicine-form label:nth-of-type(1),
+  .medicine-form label:nth-of-type(2),
+  .medicine-form label:nth-of-type(5),
+  .medicine-form .checkline,
+  .form-actions {
+    grid-column: 1 / -1;
+  }
+
+  .panel,
+  .push-strip,
+  .schedule-card {
+    box-shadow: 0 10px 22px rgba(31, 43, 61, .08);
+  }
+
+  .push-strip {
+    border-radius: 18px;
+  }
+
+  .next-dose {
+    border-radius: 22px;
     grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  .next-dose strong {
+    font-size: 24px;
+  }
+
+  .next-dose time {
+    text-align: left;
   }
 
   .schedule-header {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
     letter-spacing: .04em;
   }
 
@@ -416,6 +603,7 @@ label span {
   .schedule-card {
     grid-template-columns: 40px 1fr;
     gap: 10px;
+    border-radius: 20px;
     padding: 11px;
   }
 
@@ -429,10 +617,41 @@ label span {
   .schedule-actions {
     grid-column: 1 / -1;
     justify-content: space-between;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+
+  .schedule-actions button {
+    min-height: 34px;
+    border-radius: 999px;
+    padding: 6px 12px;
   }
 
   .dose-state {
     width: 30px;
     height: 30px;
+  }
+
+  .fab-button {
+    position: fixed;
+    right: 16px;
+    bottom: 18px;
+    z-index: 30;
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 22px;
+    background: var(--accent);
+    box-shadow: 0 16px 34px rgba(49, 103, 189, .32);
+    color: #ffffff;
+    font-size: 34px;
+    line-height: 1;
+    padding: 0 0 4px;
+  }
+
+  body.form-open .fab-button {
+    display: none;
   }
 }
