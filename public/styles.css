@@ -1324,9 +1324,13 @@ body.form-open .medicine-panel {
   display: none !important;
 }
 
-.fab-button {
+html body .fab-button {
+  position: fixed !important;
   left: 50% !important;
   right: auto !important;
   bottom: 22px;
+  width: 64px;
+  height: 64px;
+  margin: 0 !important;
   transform: translateX(-50%) !important;
 }
