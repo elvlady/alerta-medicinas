@@ -582,7 +582,7 @@ async function serveStatic(url) {
   });
 }
 
-Bun.serve({
+const server = Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
@@ -603,3 +603,13 @@ Bun.serve({
 
 console.log(`Alerta Medicinas listo en http://0.0.0.0:${PORT}`);
 console.log(`SQLite: ${DB_PATH}`);
+
+function shutdown(signal) {
+  console.log(`${signal} recibido, cerrando Alerta Medicinas...`);
+  server.stop(true);
+  db.close();
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

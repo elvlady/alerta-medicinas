@@ -18,4 +18,4 @@ RUN mkdir -p /app/data
 VOLUME ["/app/data"]
 EXPOSE 3000
 
-CMD ["bun", "run", "start"]
+CMD ["bun", "src/server.js"]
