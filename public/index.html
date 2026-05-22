@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#177d6b">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=4">
-  <link rel="stylesheet" href="/styles.css?v=4">
-  <script type="module" src="/app.js?v=4"></script>
+  <link rel="manifest" href="/manifest.webmanifest?v=5">
+  <link rel="stylesheet" href="/styles.css?v=5">
+  <script type="module" src="/app.js?v=5"></script>
 </head>
 <body>
   <section class="auth-view" id="auth-view" hidden>
@@ -99,6 +99,20 @@
 
       <section class="medicine-list" id="medicine-list"></section>
     </main>
+    <nav class="bottom-nav" aria-label="Navegacion principal">
+      <button type="button" class="active">
+        <span class="nav-icon nav-home" aria-hidden="true"></span>
+        Hoy
+      </button>
+      <button type="button" id="nav-medicines-button">
+        <span class="nav-icon nav-pill" aria-hidden="true"></span>
+        Medicinas
+      </button>
+      <button type="button">
+        <span class="nav-icon nav-history" aria-hidden="true"></span>
+        Historial
+      </button>
+    </nav>
     <button type="button" class="fab-button" id="fab-button" aria-label="Agregar medicina">+</button>
   </section>
 </body>

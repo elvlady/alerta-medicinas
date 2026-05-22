@@ -655,3 +655,369 @@ label span {
     display: none;
   }
 }
+
+/* Mobile app shell */
+body {
+  background: #d9d2c4;
+}
+
+.app-view {
+  position: relative;
+  width: min(100%, 430px);
+  min-height: 100vh;
+  margin: 0 auto;
+  overflow-x: hidden;
+  background: #f1f5fb;
+  box-shadow: 0 0 0 1px rgba(31, 43, 61, .12), 0 24px 60px rgba(31, 43, 61, .2);
+}
+
+.topbar {
+  width: 100%;
+  min-height: 92px;
+  align-items: flex-start;
+  border-bottom: 0;
+  background: #f1f5fb;
+  padding: 22px 24px 12px;
+}
+
+.topbar h1 {
+  color: #152238;
+  font-size: 28px;
+  line-height: 1.05;
+}
+
+.top-actions {
+  width: auto;
+  justify-content: flex-end;
+}
+
+#user-label,
+#toggle-form-button {
+  display: none;
+}
+
+#logout-button {
+  min-height: 34px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .68);
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.shell {
+  width: 100%;
+  gap: 12px;
+  margin: 0;
+  padding: 0 16px 118px;
+}
+
+.medicine-panel {
+  display: none;
+}
+
+body.form-open .app-view::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(31, 43, 61, .34);
+}
+
+body.form-open .medicine-panel {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: 10px;
+  z-index: 45;
+  width: min(410px, calc(100vw - 20px));
+  max-height: min(82vh, 680px);
+  display: block;
+  overflow: auto;
+  border-radius: 24px;
+  padding: 16px;
+  transform: translateX(-50%);
+}
+
+.form-heading {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  margin: -16px -16px 14px;
+  padding: 16px;
+}
+
+#close-form-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+
+.medicine-form {
+  grid-template-columns: 1fr 1fr;
+}
+
+.medicine-form label:nth-of-type(1),
+.medicine-form label:nth-of-type(2),
+.medicine-form label:nth-of-type(5),
+.medicine-form .checkline,
+.form-actions {
+  grid-column: 1 / -1;
+}
+
+.push-strip {
+  border: 1px solid rgba(221, 229, 238, .9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .76);
+  box-shadow: none;
+  padding: 12px 14px;
+}
+
+.push-strip span {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.push-strip .button-row {
+  gap: 6px;
+}
+
+.push-strip button {
+  min-height: 32px;
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+.next-dose {
+  border: 0;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #336cc8, #5a8bd8);
+  box-shadow: 0 18px 38px rgba(49, 103, 189, .28);
+  color: #ffffff;
+  padding: 18px;
+}
+
+.next-dose span,
+.next-dose small,
+.next-dose strong,
+.next-dose time,
+.next-dose time span {
+  color: #ffffff;
+}
+
+.next-dose span,
+.next-dose small {
+  opacity: .82;
+}
+
+.next-dose strong {
+  font-size: 24px;
+}
+
+.next-dose time {
+  font-size: 30px;
+}
+
+.schedule-header {
+  margin: 16px 8px 10px;
+  color: #717782;
+  font-size: 13px;
+}
+
+.schedule-item {
+  grid-template-columns: 58px 22px 1fr;
+  min-height: 76px;
+}
+
+.schedule-time {
+  padding-top: 15px;
+}
+
+.schedule-time strong {
+  color: #25334b;
+  font-size: 18px;
+}
+
+.schedule-card {
+  min-height: 70px;
+  grid-template-columns: 44px 1fr auto;
+  border: 0;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 10px 22px rgba(31, 43, 61, .08);
+  margin-bottom: 8px;
+  padding: 12px 14px;
+}
+
+.schedule-actions button {
+  display: none;
+}
+
+.schedule-card:hover .schedule-actions button,
+.schedule-card:focus-within .schedule-actions button {
+  display: inline-flex;
+}
+
+.dose-state {
+  width: 32px;
+  height: 32px;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 28;
+  width: min(306px, calc(100vw - 100px));
+  height: 64px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 12px 30px rgba(31, 43, 61, .16);
+  transform: translateX(calc(-50% - 34px));
+}
+
+.bottom-nav button {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: #70747b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 2px;
+}
+
+.bottom-nav button.active {
+  color: var(--accent);
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  position: relative;
+}
+
+.nav-home::before {
+  content: "";
+  position: absolute;
+  inset: 4px 3px 2px;
+  border: 2px solid currentColor;
+  border-top: 0;
+  border-radius: 3px;
+}
+
+.nav-home::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid currentColor;
+  border-left: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.nav-pill::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 16px;
+  height: 6px;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+}
+
+.nav-history::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 999px;
+}
+
+.nav-history::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  width: 6px;
+  height: 6px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.fab-button {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 29;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 22px;
+  background: var(--accent);
+  box-shadow: 0 16px 34px rgba(49, 103, 189, .34);
+  color: #ffffff;
+  font-size: 34px;
+  line-height: 1;
+  padding: 0 0 4px;
+  transform: translateX(150px);
+}
+
+body.form-open .bottom-nav,
+body.form-open .fab-button {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  .app-view {
+    box-shadow: none;
+  }
+
+  .topbar {
+    padding-inline: 18px;
+  }
+
+  .shell {
+    padding-inline: 12px;
+  }
+
+  .schedule-item {
+    grid-template-columns: 52px 18px 1fr;
+  }
+
+  .schedule-card {
+    grid-template-columns: 40px 1fr auto;
+    gap: 10px;
+    padding: 11px 12px;
+  }
+
+  .schedule-details span {
+    font-size: 13px;
+  }
+
+  .bottom-nav {
+    transform: translateX(calc(-50% - 28px));
+  }
+
+  .fab-button {
+    right: 16px;
+    left: auto;
+    transform: none;
+  }
+}

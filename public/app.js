@@ -226,12 +226,16 @@ function renderMedicines() {
           <span>${meta}</span>
         </div>
         <div class="schedule-actions">
-          <span class="dose-state" aria-label="${item.completed ? "Completada" : "Pendiente"}">${item.completed ? "✓" : ""}</span>
+          <span class="dose-state" aria-label="${item.completed ? "Completada" : "Pendiente"}"></span>
           <button type="button" data-action="edit">Editar</button>
           <button type="button" class="danger" data-action="delete">Eliminar</button>
         </div>
       </div>
     `;
+    row.querySelector(".schedule-card").addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      editMedicine(medicine);
+    });
     row.querySelector('[data-action="edit"]').addEventListener("click", () => editMedicine(medicine));
     row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteMedicine(medicine.id));
     list.append(row);
@@ -383,6 +387,10 @@ $("#medicine-form").addEventListener("submit", saveMedicine);
 $("#cancel-edit").addEventListener("click", resetMedicineForm);
 $("#toggle-form-button").addEventListener("click", () => setFormOpen(!state.formOpen));
 $("#fab-button").addEventListener("click", () => {
+  resetMedicineForm();
+  setFormOpen(true);
+});
+$("#nav-medicines-button").addEventListener("click", () => {
   resetMedicineForm();
   setFormOpen(true);
 });
