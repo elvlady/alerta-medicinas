@@ -1075,3 +1075,94 @@ body.form-open .fab-button {
 body.form-open .fab-button {
   display: none !important;
 }
+
+/* Swipe actions: the list stays read-only until the card moves left. */
+.swipe-shell {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.swipe-shell .schedule-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  margin-bottom: 0;
+  cursor: default;
+  touch-action: pan-y;
+  user-select: none;
+  transition: transform .18s ease, box-shadow .16s ease;
+}
+
+.swipe-actions {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 1;
+  width: 138px;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.swipe-actions button {
+  width: 64px;
+  min-height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 18px;
+  background: #e8eef7;
+  box-shadow: none;
+  color: #2d5fae;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 0;
+}
+
+.swipe-actions button.danger {
+  background: #ffe7e7;
+  color: #b33131;
+}
+
+.schedule-item.actions-open .schedule-card {
+  transform: translateX(-138px);
+}
+
+.schedule-item.completed {
+  opacity: 1;
+}
+
+.schedule-item.completed .schedule-details {
+  opacity: .58;
+}
+
+.schedule-actions {
+  justify-content: flex-end;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.schedule-actions .dose-state {
+  min-height: 32px;
+  display: grid !important;
+  flex: 0 0 auto;
+  border: 2px solid #d8dde2;
+  background: #ffffff;
+  box-shadow: none;
+  padding: 0;
+}
+
+.schedule-actions .dose-state:hover {
+  border-color: #6d92cf;
+  box-shadow: 0 6px 14px rgba(49, 103, 189, .14);
+}
+
+.schedule-item.completed .schedule-actions .dose-state {
+  border-color: #6d92cf;
+  background: #6d92cf;
+}

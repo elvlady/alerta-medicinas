@@ -55,6 +55,17 @@ CREATE TABLE IF NOT EXISTS medicines (
 CREATE INDEX IF NOT EXISTS medicines_user_idx ON medicines(user_id);
 CREATE INDEX IF NOT EXISTS medicines_due_idx ON medicines(active, time_of_day, last_notified_on);
 
+CREATE TABLE IF NOT EXISTS dose_completions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  medicine_id TEXT NOT NULL REFERENCES medicines(id) ON DELETE CASCADE,
+  scheduled_at TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  UNIQUE(user_id, medicine_id, scheduled_at)
+);
+
+CREATE INDEX IF NOT EXISTS dose_completions_user_idx ON dose_completions(user_id, scheduled_at);
+
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -338,7 +349,7 @@ function nextReminderAfter(row, now = new Date()) {
   return new Date(nextMs).toISOString();
 }
 
-function normalizeMedicine(row) {
+function normalizeMedicine(row, completedDoses = []) {
   const intervalHours = row.interval_hours || 24;
   const durationDays = row.duration_days || 7;
   const startAt = row.start_at || row.created_at;
@@ -355,6 +366,7 @@ function normalizeMedicine(row) {
     treatmentStatus: treatmentStatus(normalizedRow),
     notes: row.notes,
     active: Boolean(row.active),
+    completedDoses,
     lastNotifiedAt: row.last_notified_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -570,11 +582,26 @@ async function handleApi(req, url) {
   const user = requireUser(req);
 
   if (path === "/api/medicines" && method === "GET") {
-    const medicines = db.query(`
+    const rows = db.query(`
       SELECT * FROM medicines
       WHERE user_id = $userId
       ORDER BY active DESC, next_reminder_at ASC, name ASC
-    `).all({ $userId: user.id }).map(normalizeMedicine);
+    `).all({ $userId: user.id });
+    const completedByMedicine = new Map();
+    const completionRows = db.query(`
+      SELECT medicine_id, scheduled_at
+      FROM dose_completions
+      WHERE user_id = $userId
+    `).all({ $userId: user.id });
+
+    for (const completion of completionRows) {
+      if (!completedByMedicine.has(completion.medicine_id)) {
+        completedByMedicine.set(completion.medicine_id, []);
+      }
+      completedByMedicine.get(completion.medicine_id).push(completion.scheduled_at);
+    }
+
+    const medicines = rows.map((row) => normalizeMedicine(row, completedByMedicine.get(row.id) || []));
     return json({ ok: true, medicines });
   }
 
@@ -605,6 +632,43 @@ async function handleApi(req, url) {
     });
     const medicine = db.query("SELECT * FROM medicines WHERE id = $id").get({ $id: id });
     return json({ ok: true, medicine: normalizeMedicine(medicine) }, 201);
+  }
+
+  const completionMatch = path.match(/^\/api\/medicines\/([^/]+)\/completions$/);
+  if (completionMatch && method === "POST") {
+    const id = completionMatch[1];
+    const medicine = db.query("SELECT id FROM medicines WHERE id = $id AND user_id = $userId")
+      .get({ $id: id, $userId: user.id });
+    if (!medicine) throw new AppError(404, "Medicina no encontrada.");
+
+    const data = await readJson(req);
+    const scheduledAt = String(data.scheduledAt || "").trim();
+    if (!validIso(scheduledAt)) {
+      throw new AppError(400, "La toma programada no es valida.");
+    }
+
+    const normalizedScheduledAt = new Date(scheduledAt).toISOString();
+    if (data.completed === false) {
+      db.query(`
+        DELETE FROM dose_completions
+        WHERE user_id = $userId AND medicine_id = $medicineId AND scheduled_at = $scheduledAt
+      `).run({ $userId: user.id, $medicineId: id, $scheduledAt: normalizedScheduledAt });
+      return json({ ok: true, scheduledAt: normalizedScheduledAt, completed: false });
+    }
+
+    db.query(`
+      INSERT INTO dose_completions (id, user_id, medicine_id, scheduled_at, completed_at)
+      VALUES ($id, $userId, $medicineId, $scheduledAt, $completedAt)
+      ON CONFLICT(user_id, medicine_id, scheduled_at)
+      DO UPDATE SET completed_at = excluded.completed_at
+    `).run({
+      $id: randomUUID(),
+      $userId: user.id,
+      $medicineId: id,
+      $scheduledAt: normalizedScheduledAt,
+      $completedAt: nowIso(),
+    });
+    return json({ ok: true, scheduledAt: normalizedScheduledAt, completed: true });
   }
 
   const medicineMatch = path.match(/^\/api\/medicines\/([^/]+)$/);

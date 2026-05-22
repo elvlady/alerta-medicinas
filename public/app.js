@@ -6,6 +6,8 @@ const state = {
   formOpen: false,
 };
 
+const SWIPE_ACTION_WIDTH = 138;
+
 const $ = (selector) => document.querySelector(selector);
 
 async function api(path, options = {}) {
@@ -118,6 +120,11 @@ function timeParts(value) {
   return { time: `${hour}:${minutes}`, period };
 }
 
+function doseKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
 function scheduleForMedicine(medicine, now = new Date()) {
   if (!medicine.active || medicine.treatmentStatus === "completed") return [];
 
@@ -130,6 +137,7 @@ function scheduleForMedicine(medicine, now = new Date()) {
   if (end && end < dayStart) return [];
 
   const intervalMs = Math.max(1, medicine.intervalHours || 8) * 60 * 60 * 1000;
+  const completedDoses = new Set(medicine.completedDoses || []);
   let nextMs = start.getTime();
   if (nextMs < dayStart.getTime()) {
     nextMs += Math.ceil((dayStart.getTime() - nextMs) / intervalMs) * intervalMs;
@@ -137,7 +145,8 @@ function scheduleForMedicine(medicine, now = new Date()) {
 
   const items = [];
   while (nextMs <= dayEnd.getTime() && (!end || nextMs <= end.getTime()) && items.length < 48) {
-    items.push({ medicine, date: new Date(nextMs), completed: nextMs <= now.getTime() });
+    const date = new Date(nextMs);
+    items.push({ medicine, date, completed: completedDoses.has(doseKey(date)) });
     nextMs += intervalMs;
   }
   return items;
@@ -146,7 +155,87 @@ function scheduleForMedicine(medicine, now = new Date()) {
 function nextFallbackItem(medicine) {
   const nextDate = medicine.nextReminderAt ? new Date(medicine.nextReminderAt) : null;
   if (!nextDate || Number.isNaN(nextDate.getTime())) return null;
-  return { medicine, date: nextDate, completed: false, fallback: true };
+  return { medicine, date: nextDate, completed: new Set(medicine.completedDoses || []).has(doseKey(nextDate)), fallback: true };
+}
+
+function closeSwipeRow(row) {
+  row.classList.remove("actions-open");
+  row.dataset.swipeX = "0";
+  const card = row.querySelector("[data-swipe-card]");
+  if (card) {
+    card.style.transform = "";
+  }
+}
+
+function closeSwipeRows(except = null) {
+  document.querySelectorAll(".schedule-item.actions-open").forEach((row) => {
+    if (row !== except) closeSwipeRow(row);
+  });
+}
+
+function setSwipeOffset(row, card, offset) {
+  const nextOffset = Math.max(0, Math.min(SWIPE_ACTION_WIDTH, offset));
+  row.dataset.swipeX = String(nextOffset);
+  card.style.transform = nextOffset ? `translateX(${-nextOffset}px)` : "";
+}
+
+function setupSwipe(row, card) {
+  let startX = 0;
+  let startY = 0;
+  let initialOffset = 0;
+  let pointerId = null;
+  let dragging = false;
+  let suppressClick = false;
+
+  const finishSwipe = (event) => {
+    if (pointerId !== event.pointerId) return;
+    card.style.transition = "";
+    const offset = Number(row.dataset.swipeX || 0);
+    if (dragging && offset > SWIPE_ACTION_WIDTH * 0.42) {
+      row.classList.add("actions-open");
+      row.dataset.swipeX = String(SWIPE_ACTION_WIDTH);
+      card.style.transform = "";
+    } else {
+      closeSwipeRow(row);
+    }
+    suppressClick = dragging;
+    pointerId = null;
+    dragging = false;
+  };
+
+  card.addEventListener("pointerdown", (event) => {
+    if ((event.button && event.button !== 0) || event.target.closest("button")) return;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startY = event.clientY;
+    initialOffset = row.classList.contains("actions-open") ? SWIPE_ACTION_WIDTH : Number(row.dataset.swipeX || 0);
+    dragging = false;
+    card.style.transition = "none";
+    if (card.setPointerCapture) card.setPointerCapture(event.pointerId);
+  });
+
+  card.addEventListener("pointermove", (event) => {
+    if (pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - startX;
+    const deltaY = event.clientY - startY;
+    if (!dragging && Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
+    if (!dragging && Math.abs(deltaY) > Math.abs(deltaX)) return;
+    dragging = true;
+    event.preventDefault();
+    closeSwipeRows(row);
+    setSwipeOffset(row, card, initialOffset - deltaX);
+  });
+
+  card.addEventListener("pointerup", finishSwipe);
+  card.addEventListener("pointercancel", finishSwipe);
+  card.addEventListener("click", (event) => {
+    if (suppressClick) {
+      suppressClick = false;
+      event.preventDefault();
+      return;
+    }
+    if (row.classList.contains("actions-open")) closeSwipeRow(row);
+  });
 }
 
 function renderMedicines() {
@@ -201,25 +290,43 @@ function renderMedicines() {
         <span>${escapeHtml(period)}</span>
       </div>
       <div class="schedule-line"><span></span></div>
-      <div class="schedule-card">
-        <div class="medicine-symbol" aria-hidden="true">=</div>
-        <div class="schedule-details">
-          <strong>${escapeHtml(medicine.name)}</strong>
-          <span>${meta}</span>
-        </div>
-        <div class="schedule-actions">
-          <span class="dose-state" aria-label="${item.completed ? "Completada" : "Pendiente"}"></span>
+      <div class="swipe-shell">
+        <div class="swipe-actions" aria-label="Acciones de ${escapeHtml(medicine.name)}">
           <button type="button" data-action="edit">Editar</button>
-          <button type="button" class="danger" data-action="delete">Eliminar</button>
+          <button type="button" class="danger" data-action="delete">Borrar</button>
+        </div>
+        <div class="schedule-card" data-swipe-card>
+          <div class="medicine-symbol" aria-hidden="true">=</div>
+          <div class="schedule-details">
+            <strong>${escapeHtml(medicine.name)}</strong>
+            <span>${meta}</span>
+          </div>
+          <div class="schedule-actions">
+            <button
+              type="button"
+              class="dose-state"
+              data-action="complete"
+              aria-label="${item.completed ? "Marcar como pendiente" : "Marcar como completada"}"
+            ></button>
+          </div>
         </div>
       </div>
     `;
-    row.querySelector(".schedule-card").addEventListener("click", (event) => {
-      if (event.target.closest("button")) return;
+    const card = row.querySelector("[data-swipe-card]");
+    row.querySelector('[data-action="complete"]').addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleDoseCompletion(medicine, item.date, !item.completed);
+    });
+    row.querySelector('[data-action="edit"]').addEventListener("click", (event) => {
+      event.stopPropagation();
+      closeSwipeRow(row);
       editMedicine(medicine);
     });
-    row.querySelector('[data-action="edit"]').addEventListener("click", () => editMedicine(medicine));
-    row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteMedicine(medicine.id));
+    row.querySelector('[data-action="delete"]').addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteMedicine(medicine.id);
+    });
+    setupSwipe(row, card);
     list.append(row);
   }
 }
@@ -263,6 +370,29 @@ async function saveMedicine(event) {
 async function deleteMedicine(id) {
   await api(`/api/medicines/${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadMedicines();
+}
+
+async function toggleDoseCompletion(medicine, date, completed) {
+  const key = doseKey(date);
+  const completedDoses = new Set(medicine.completedDoses || []);
+  if (completed) {
+    completedDoses.add(key);
+  } else {
+    completedDoses.delete(key);
+  }
+  medicine.completedDoses = [...completedDoses];
+  renderMedicines();
+
+  try {
+    await api(`/api/medicines/${encodeURIComponent(medicine.id)}/completions`, {
+      method: "POST",
+      body: JSON.stringify({ scheduledAt: key, completed }),
+    });
+    await loadMedicines();
+  } catch (error) {
+    console.error(error);
+    await loadMedicines();
+  }
 }
 
 function urlBase64ToUint8Array(base64String) {
