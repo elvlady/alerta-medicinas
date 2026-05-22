@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#177d6b">
+  <title>Alerta Medicinas</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <section class="auth-view" id="auth-view" hidden>
+    <form class="auth-panel" id="auth-form">
+      <p class="eyebrow" id="auth-eyebrow">Cuenta</p>
+      <h1 id="auth-title">Entrar</h1>
+      <label>
+        <span>Usuario</span>
+        <input id="auth-username" autocomplete="username" required>
+      </label>
+      <label id="name-field" hidden>
+        <span>Nombre</span>
+        <input id="auth-name" autocomplete="name">
+      </label>
+      <label>
+        <span>Contrasena</span>
+        <input id="auth-password" type="password" autocomplete="current-password" minlength="8" required>
+      </label>
+      <button class="primary" type="submit" id="auth-submit">Entrar</button>
+      <p class="message" id="auth-message"></p>
+    </form>
+  </section>
+
+  <section class="app-view" id="app-view" hidden>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Recordatorios</p>
+        <h1>Alerta Medicinas</h1>
+      </div>
+      <div class="top-actions">
+        <span id="user-label"></span>
+        <button type="button" id="logout-button">Salir</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel">
+        <form class="medicine-form" id="medicine-form">
+          <input type="hidden" id="medicine-id">
+          <label>
+            <span>Nombre</span>
+            <input id="medicine-name" required placeholder="Metformina">
+          </label>
+          <label>
+            <span>Dosis</span>
+            <input id="medicine-dose" placeholder="1 tableta">
+          </label>
+          <label>
+            <span>Hora</span>
+            <input id="medicine-time" type="time" required>
+          </label>
+          <label>
+            <span>Notas</span>
+            <input id="medicine-notes" placeholder="Despues de comer">
+          </label>
+          <label class="checkline">
+            <input id="medicine-active" type="checkbox" checked>
+            <span>Activa</span>
+          </label>
+          <div class="form-actions">
+            <button class="primary" type="submit" id="save-button">Guardar</button>
+            <button type="button" id="cancel-edit" hidden>Cancelar</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="push-strip">
+        <div>
+          <strong>Push</strong>
+          <span id="push-status">Listo para activar</span>
+        </div>
+        <div class="button-row">
+          <button type="button" id="push-button">Activar</button>
+          <button type="button" id="test-push-button">Probar</button>
+        </div>
+      </section>
+
+      <section class="medicine-list" id="medicine-list"></section>
+    </main>
+  </section>
+</body>
+</html>

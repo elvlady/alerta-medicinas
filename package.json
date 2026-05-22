@@ -1,0 +1,17 @@
+{
+  "name": "alerta-medicinas",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Recordatorios de medicinas con Bun, SQLite3 y Web Push.",
+  "scripts": {
+    "start": "bun src/server.js",
+    "dev": "bun --watch src/server.js"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
