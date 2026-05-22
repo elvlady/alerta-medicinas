@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#177d6b">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=8">
-  <link rel="stylesheet" href="/styles.css?v=8">
-  <script type="module" src="/app.js?v=8"></script>
+  <link rel="manifest" href="/manifest.webmanifest?v=9">
+  <link rel="stylesheet" href="/styles.css?v=9">
+  <script type="module" src="/app.js?v=9"></script>
 </head>
 <body>
   <section class="auth-view" id="auth-view" hidden>
@@ -38,7 +38,12 @@
         <h1>Alerta Medicinas</h1>
       </div>
       <div class="top-actions">
-        <button type="button" id="push-button">Activar notificaciones</button>
+        <button type="button" id="push-button" class="push-switch" aria-pressed="false">
+          <span>Activar</span>
+          <span class="switch-track" aria-hidden="true">
+            <span class="switch-thumb"></span>
+          </span>
+        </button>
         <span id="push-status" class="sr-only">Listo para activar</span>
         <button type="button" id="logout-button" hidden>Salir</button>
       </div>
