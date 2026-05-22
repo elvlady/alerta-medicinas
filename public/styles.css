@@ -1313,3 +1313,20 @@ body.form-open .medicine-panel {
     right: 16px;
   }
 }
+
+/* Final bottom control: only the add button exists. */
+.bottom-nav,
+.bottom-nav *,
+.nav-icon,
+.nav-home,
+.nav-pill,
+.nav-history {
+  display: none !important;
+}
+
+.fab-button {
+  left: 50% !important;
+  right: auto !important;
+  bottom: 22px;
+  transform: translateX(-50%) !important;
+}
