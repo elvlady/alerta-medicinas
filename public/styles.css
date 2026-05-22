@@ -1344,8 +1344,9 @@ html body .schedule-item.completed .schedule-details {
 }
 
 html body .swipe-shell .schedule-card {
-  min-height: 78px;
+  min-height: 70px;
   grid-template-columns: 44px minmax(0, 1fr) 42px;
+  grid-template-rows: 1fr;
   align-items: center;
   background: #ffffff !important;
 }
@@ -1365,13 +1366,13 @@ html body .schedule-details span {
 
 html body .schedule-actions {
   width: 42px;
-  height: auto;
-  min-height: 78px;
+  height: 38px;
+  min-height: 0;
   display: grid !important;
   grid-column: auto !important;
   grid-row: 1 !important;
   place-items: center;
-  align-self: stretch;
+  align-self: center;
   justify-self: end;
   justify-content: center;
   border-top: 0 !important;
