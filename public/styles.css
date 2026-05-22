@@ -157,7 +157,7 @@ label span {
 
 .panel,
 .push-strip,
-.medicine-card {
+.schedule-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -207,43 +207,161 @@ label span {
 
 .medicine-list {
   display: grid;
-  gap: 10px;
+  gap: 0;
 }
 
-.medicine-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: center;
-  padding: 14px 16px;
-}
-
-.medicine-card.inactive {
-  opacity: .62;
-}
-
-.medicine-title {
+.schedule-header {
   display: flex;
-  gap: 10px;
-  align-items: baseline;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+  text-transform: uppercase;
 }
 
-.medicine-title strong {
+.schedule-header strong {
+  color: #9aa2a9;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.schedule-item {
+  display: grid;
+  grid-template-columns: 64px 20px 1fr;
+  min-height: 76px;
+}
+
+.schedule-time {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+  padding-top: 16px;
+  color: #27344b;
+}
+
+.schedule-time strong {
   font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
 }
 
-.time-pill {
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--accent);
-  padding: 4px 9px;
+.schedule-time span {
+  margin-top: 3px;
+  color: #9098a2;
+  font-size: 10px;
   font-weight: 800;
 }
 
-.medicine-meta {
-  margin-top: 6px;
+.schedule-line {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.schedule-line::before {
+  content: "";
+  width: 1px;
+  min-height: 100%;
+  background: #dbe1e7;
+}
+
+.schedule-line span {
+  position: absolute;
+  top: 18px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #3467bd;
+  border-radius: 999px;
+  background: #3467bd;
+}
+
+.schedule-item.completed {
+  opacity: .58;
+}
+
+.schedule-item.completed .schedule-details strong {
+  text-decoration: line-through;
+}
+
+.schedule-item.completed .schedule-line span {
+  background: var(--surface);
+  border-color: #9aa2a9;
+}
+
+.schedule-card {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border-radius: 18px;
+  margin-bottom: 8px;
+  padding: 12px 14px;
+}
+
+.medicine-symbol {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #eaf3f6;
+  color: #4bb4c2;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.schedule-details {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.schedule-details strong {
+  overflow-wrap: anywhere;
+  color: #27344b;
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.schedule-details span {
   color: var(--muted);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-actions button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.dose-state {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #d8dde2;
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.schedule-item.completed .dose-state {
+  border-color: #6d92cf;
+  background: #6d92cf;
 }
 
 .empty-state {
@@ -266,8 +384,7 @@ label span {
 
 @media (max-width: 620px) {
   .topbar,
-  .push-strip,
-  .medicine-card {
+  .push-strip {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -286,7 +403,36 @@ label span {
     grid-template-columns: 1fr;
   }
 
-  .medicine-card {
-    display: flex;
+  .schedule-header {
+    align-items: flex-start;
+    flex-direction: column;
+    letter-spacing: .04em;
+  }
+
+  .schedule-item {
+    grid-template-columns: 54px 18px 1fr;
+  }
+
+  .schedule-card {
+    grid-template-columns: 40px 1fr;
+    gap: 10px;
+    padding: 11px;
+  }
+
+  .medicine-symbol {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    font-size: 21px;
+  }
+
+  .schedule-actions {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
+
+  .dose-state {
+    width: 30px;
+    height: 30px;
   }
 }

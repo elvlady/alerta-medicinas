@@ -90,19 +90,51 @@ function formatDuration(days) {
   return `${days} ${days === 1 ? "dia" : "dias"}`;
 }
 
-function formatDateTime(value) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("es-MX", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+function startOfToday(now = new Date()) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function statusText(medicine) {
-  if (!medicine.active) return "Pausada";
-  if (medicine.treatmentStatus === "completed") return "Completada";
-  if (medicine.treatmentStatus === "pending") return "Pendiente";
-  return "Activa";
+function endOfToday(now = new Date()) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
+function timeParts(value) {
+  const date = new Date(value);
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const period = date.getHours() >= 12 ? "PM" : "AM";
+  const hour = date.getHours() % 12 || 12;
+  return { time: `${hour}:${minutes}`, period };
+}
+
+function scheduleForMedicine(medicine, now = new Date()) {
+  if (!medicine.active || medicine.treatmentStatus === "completed") return [];
+
+  const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
+  const end = medicine.endsAt ? new Date(medicine.endsAt) : null;
+  if (Number.isNaN(start.getTime())) return [];
+
+  const dayStart = startOfToday(now);
+  const dayEnd = endOfToday(now);
+  if (end && end < dayStart) return [];
+
+  const intervalMs = Math.max(1, medicine.intervalHours || 8) * 60 * 60 * 1000;
+  let nextMs = start.getTime();
+  if (nextMs < dayStart.getTime()) {
+    nextMs += Math.ceil((dayStart.getTime() - nextMs) / intervalMs) * intervalMs;
+  }
+
+  const items = [];
+  while (nextMs <= dayEnd.getTime() && (!end || nextMs <= end.getTime()) && items.length < 48) {
+    items.push({ medicine, date: new Date(nextMs), completed: nextMs <= now.getTime() });
+    nextMs += intervalMs;
+  }
+  return items;
+}
+
+function nextFallbackItem(medicine) {
+  const nextDate = medicine.nextReminderAt ? new Date(medicine.nextReminderAt) : null;
+  if (!nextDate || Number.isNaN(nextDate.getTime())) return null;
+  return { medicine, date: nextDate, completed: false, fallback: true };
 }
 
 function renderMedicines() {
@@ -116,31 +148,63 @@ function renderMedicines() {
     return;
   }
 
-  for (const medicine of state.medicines) {
-    const card = document.createElement("article");
-    const isLive = medicine.active && medicine.treatmentStatus !== "completed";
-    card.className = `medicine-card${isLive ? "" : " inactive"}`;
+  const now = new Date();
+  let items = state.medicines.flatMap((medicine) => scheduleForMedicine(medicine, now));
+  const isFallback = !items.length;
+  if (isFallback) {
+    items = state.medicines.map(nextFallbackItem).filter(Boolean);
+  }
+  items.sort((a, b) => a.date - b.date);
+
+  const completed = items.filter((item) => item.completed).length;
+  const header = document.createElement("div");
+  header.className = "schedule-header";
+  header.innerHTML = `
+    <span>${isFallback ? "PROXIMAS TOMAS" : "CRONOGRAMA DE HOY"}</span>
+    <strong>${completed}/${items.length} completadas</strong>
+  `;
+  list.append(header);
+
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No hay tomas programadas.";
+    list.append(empty);
+    return;
+  }
+
+  for (const item of items) {
+    const medicine = item.medicine;
+    const { time, period } = timeParts(item.date);
+    const row = document.createElement("article");
+    row.className = `schedule-item${item.completed ? " completed" : ""}`;
     const dose = medicine.dose ? `<span>${escapeHtml(medicine.dose)}</span>` : "";
-    const interval = `<span>Cada ${escapeHtml(medicine.intervalHours || 8)} h</span>`;
-    const duration = `<span>${escapeHtml(formatDuration(medicine.durationDays || 7))}</span>`;
-    const next = medicine.nextReminderAt && isLive ? `<span>Siguiente: ${escapeHtml(formatDateTime(medicine.nextReminderAt))}</span>` : "";
     const notes = medicine.notes ? `<span>${escapeHtml(medicine.notes)}</span>` : "";
-    card.innerHTML = `
-      <div>
-        <div class="medicine-title">
-          <strong>${escapeHtml(medicine.name)}</strong>
-          <span class="time-pill">${escapeHtml(statusText(medicine))}</span>
-        </div>
-        <div class="medicine-meta">${[dose, interval, duration, next, notes].filter(Boolean).join(" - ")}</div>
+    const meta = [dose, `<span>Cada ${escapeHtml(medicine.intervalHours || 8)} h</span>`, `<span>${escapeHtml(formatDuration(medicine.durationDays || 7))}</span>`, notes]
+      .filter(Boolean)
+      .join(" - ");
+    row.innerHTML = `
+      <div class="schedule-time">
+        <strong>${escapeHtml(time)}</strong>
+        <span>${escapeHtml(period)}</span>
       </div>
-      <div class="button-row">
-        <button type="button" data-action="edit">Editar</button>
-        <button type="button" class="danger" data-action="delete">Eliminar</button>
+      <div class="schedule-line"><span></span></div>
+      <div class="schedule-card">
+        <div class="medicine-symbol" aria-hidden="true">=</div>
+        <div class="schedule-details">
+          <strong>${escapeHtml(medicine.name)}</strong>
+          <span>${meta}</span>
+        </div>
+        <div class="schedule-actions">
+          <span class="dose-state" aria-label="${item.completed ? "Completada" : "Pendiente"}">${item.completed ? "✓" : ""}</span>
+          <button type="button" data-action="edit">Editar</button>
+          <button type="button" class="danger" data-action="delete">Eliminar</button>
+        </div>
       </div>
     `;
-    card.querySelector('[data-action="edit"]').addEventListener("click", () => editMedicine(medicine));
-    card.querySelector('[data-action="delete"]').addEventListener("click", () => deleteMedicine(medicine.id));
-    list.append(card);
+    row.querySelector('[data-action="edit"]').addEventListener("click", () => editMedicine(medicine));
+    row.querySelector('[data-action="delete"]').addEventListener("click", () => deleteMedicine(medicine.id));
+    list.append(row);
   }
 }
 
