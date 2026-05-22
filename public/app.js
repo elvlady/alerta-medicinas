@@ -37,7 +37,14 @@ function showAuth() {
   $("#app-view").hidden = true;
 }
 
+function clearAuthFields() {
+  $("#auth-username").value = "";
+  $("#auth-name").value = "";
+  $("#auth-password").value = "";
+}
+
 function showApp() {
+  clearAuthFields();
   $("#auth-view").hidden = true;
   $("#app-view").hidden = false;
   $("#user-label").textContent = state.user ? state.user.username : "";
@@ -220,8 +227,10 @@ async function authenticate(event) {
   try {
     const endpoint = state.setupRequired ? "/api/setup" : "/api/login";
     await api(endpoint, { method: "POST", body: JSON.stringify(body) });
+    clearAuthFields();
     await boot();
   } catch (error) {
+    $("#auth-password").value = "";
     $("#auth-message").textContent = error.message;
   }
 }
