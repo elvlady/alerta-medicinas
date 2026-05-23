@@ -135,6 +135,17 @@ function addDays(value, days) {
   return date;
 }
 
+function treatmentLastDay(medicine) {
+  const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
+  if (Number.isNaN(start.getTime())) return startOfToday();
+  const duration = Math.max(1, Number(medicine.durationDays || 1));
+  return addDays(start, duration - 1);
+}
+
+function treatmentEndsOn(medicine) {
+  return endOfDay(treatmentLastDay(medicine));
+}
+
 function selectedDate() {
   const date = state.selectedDate ? new Date(state.selectedDate) : new Date();
   return startOfDay(Number.isNaN(date.getTime()) ? new Date() : date);
@@ -177,12 +188,12 @@ function scheduleForMedicine(medicine, day = new Date()) {
   if (!medicine.active) return [];
 
   const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
-  const end = medicine.endsAt ? new Date(medicine.endsAt) : null;
+  const end = treatmentEndsOn(medicine);
   if (Number.isNaN(start.getTime())) return [];
 
   const dayStart = startOfDay(day);
   const dayEnd = endOfDay(day);
-  if (dayEnd < start || (end && dayStart > end)) return [];
+  if (dayEnd < start || dayStart > end) return [];
 
   const intervalMs = Math.max(1, medicine.intervalHours || 8) * 60 * 60 * 1000;
   const completedDoses = new Set(medicine.completedDoses || []);
@@ -205,9 +216,7 @@ function lastScheduleDate() {
   let last = today;
   for (const medicine of state.medicines) {
     if (!medicine.active) continue;
-    const end = medicine.endsAt ? new Date(medicine.endsAt) : null;
-    const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
-    const candidate = end && !Number.isNaN(end.getTime()) ? end : addDays(start, medicine.durationDays || 7);
+    const candidate = treatmentLastDay(medicine);
     if (!Number.isNaN(candidate.getTime()) && candidate > last) {
       last = candidate;
     }

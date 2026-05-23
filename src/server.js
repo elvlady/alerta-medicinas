@@ -314,7 +314,10 @@ function validIso(value) {
 
 function treatmentEndAt(row) {
   if (!validIso(row.start_at) || !row.duration_days) return null;
-  return addDaysIso(row.start_at, row.duration_days);
+  const date = new Date(row.start_at);
+  date.setDate(date.getDate() + Math.max(1, row.duration_days) - 1);
+  date.setHours(23, 59, 59, 999);
+  return date.toISOString();
 }
 
 function treatmentStatus(row, now = new Date()) {
