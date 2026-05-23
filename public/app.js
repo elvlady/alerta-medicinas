@@ -4,8 +4,8 @@ const state = {
   pushPublicKey: "",
   medicines: [],
   formOpen: false,
-  selectedDate: "",
   clientId: "",
+  openDays: new Set(),
 };
 
 const SWIPE_ACTION_WIDTH = 138;
@@ -171,17 +171,15 @@ function treatmentEndsOn(medicine) {
   return endOfDay(treatmentLastDay(medicine));
 }
 
-function selectedDate() {
-  const date = state.selectedDate ? new Date(state.selectedDate) : new Date();
-  return startOfDay(Number.isNaN(date.getTime()) ? new Date() : date);
-}
-
-function setSelectedDate(value) {
-  state.selectedDate = startOfDay(value).toISOString();
-}
-
 function sameDay(a, b) {
   return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+function dayKey(date) {
+  const value = startOfDay(date);
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${value.getFullYear()}-${month}-${day}`;
 }
 
 function dayTitle(date) {
@@ -189,7 +187,7 @@ function dayTitle(date) {
   if (sameDay(date, today)) return "HOY";
   if (sameDay(date, addDays(today, 1))) return "MANANA";
   if (sameDay(date, addDays(today, 2))) return "PASADO MANANA";
-  return date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+  return date.toLocaleDateString("es-MX", { day: "numeric", month: "long" }).replace(" de ", " ").toUpperCase();
 }
 
 function daySubtitle(date) {
@@ -247,15 +245,6 @@ function lastScheduleDate() {
     }
   }
   return startOfDay(last);
-}
-
-function changeSelectedDay(days) {
-  const today = startOfToday();
-  const last = lastScheduleDate();
-  const next = addDays(selectedDate(), days);
-  if (next < today || next > last) return;
-  setSelectedDate(next);
-  renderMedicines();
 }
 
 function closeSwipeRow(row) {
@@ -338,55 +327,7 @@ function setupSwipe(row, card) {
   });
 }
 
-function renderMedicines() {
-  const list = $("#medicine-list");
-  list.innerHTML = "";
-  if (!state.medicines.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "Aun no hay medicinas guardadas.";
-    list.append(empty);
-    return;
-  }
-
-  const day = selectedDate();
-  const today = startOfToday();
-  const last = lastScheduleDate();
-  const items = state.medicines.flatMap((medicine) => scheduleForMedicine(medicine, day));
-  items.sort((a, b) => a.date - b.date);
-
-  const completed = items.filter((item) => item.completed).length;
-  const nav = document.createElement("div");
-  nav.className = "day-nav";
-  nav.innerHTML = `
-    <button type="button" data-action="prev-day" aria-label="Dia anterior" ${day <= today ? "disabled" : ""}>&lt;</button>
-    <div>
-      <strong>${escapeHtml(dayTitle(day))}</strong>
-      <span>${escapeHtml(daySubtitle(day))}</span>
-    </div>
-    <button type="button" data-action="next-day" aria-label="Dia siguiente" ${day >= last ? "disabled" : ""}>&gt;</button>
-  `;
-  nav.querySelector('[data-action="prev-day"]').addEventListener("click", () => changeSelectedDay(-1));
-  nav.querySelector('[data-action="next-day"]').addEventListener("click", () => changeSelectedDay(1));
-  list.append(nav);
-
-  const header = document.createElement("div");
-  header.className = "schedule-header";
-  header.innerHTML = `
-    <span>CRONOGRAMA DE ${escapeHtml(dayTitle(day))}</span>
-    <strong>${completed}/${items.length} completadas</strong>
-  `;
-  list.append(header);
-
-  if (!items.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "No hay tomas programadas este dia.";
-    list.append(empty);
-    return;
-  }
-
-  for (const item of items) {
+function createScheduleRow(item) {
     const medicine = item.medicine;
     const { time, period } = timeParts(item.date);
     const row = document.createElement("article");
@@ -435,8 +376,84 @@ function renderMedicines() {
       deleteMedicine(medicine.id);
     });
     setupSwipe(row, card);
-    list.append(row);
+    return row;
+}
+
+function scheduleDays() {
+  const today = startOfToday();
+  const last = lastScheduleDate();
+  const days = [];
+  for (let day = today; day <= last && days.length < 3700; day = addDays(day, 1)) {
+    const items = state.medicines.flatMap((medicine) => scheduleForMedicine(medicine, day));
+    items.sort((a, b) => a.date - b.date);
+    days.push({ day, items });
   }
+  return days;
+}
+
+function createDayAccordion(group, index) {
+  const completed = group.items.filter((item) => item.completed).length;
+  const key = dayKey(group.day);
+  const section = document.createElement("details");
+  section.className = "day-accordion";
+  section.open = state.openDays.size ? state.openDays.has(key) : index === 0;
+  section.innerHTML = `
+    <summary>
+      <span>
+        <strong>${escapeHtml(dayTitle(group.day))}</strong>
+        <small>${escapeHtml(daySubtitle(group.day))}</small>
+      </span>
+      <em>${completed}/${group.items.length} completadas</em>
+    </summary>
+  `;
+  section.addEventListener("toggle", () => {
+    if (section.open) {
+      state.openDays.add(key);
+    } else {
+      state.openDays.delete(key);
+    }
+  });
+
+  const body = document.createElement("div");
+  body.className = "day-accordion-body";
+  if (!group.items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No hay tomas programadas este dia.";
+    body.append(empty);
+  } else {
+    group.items.forEach((item) => body.append(createScheduleRow(item)));
+  }
+  section.append(body);
+  return section;
+}
+
+function renderMedicines() {
+  const list = $("#medicine-list");
+  list.innerHTML = "";
+  if (!state.medicines.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Aun no hay medicinas guardadas.";
+    list.append(empty);
+    return;
+  }
+
+  const header = document.createElement("div");
+  header.className = "schedule-header";
+  header.innerHTML = `
+    <span>CRONOGRAMA</span>
+    <strong>Por dias</strong>
+  `;
+  list.append(header);
+
+  const groups = scheduleDays();
+  if (!state.openDays.size && groups[0]) {
+    state.openDays.add(dayKey(groups[0].day));
+  }
+  groups.forEach((group, index) => {
+    list.append(createDayAccordion(group, index));
+  });
 }
 
 function escapeHtml(value) {
@@ -452,10 +469,6 @@ function escapeHtml(value) {
 async function loadMedicines() {
   const data = await api("/api/medicines");
   state.medicines = data.medicines;
-  const today = startOfToday();
-  const last = lastScheduleDate();
-  if (selectedDate() < today) setSelectedDate(today);
-  if (selectedDate() > last) setSelectedDate(last);
   renderMedicines();
 }
 
