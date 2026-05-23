@@ -1544,12 +1544,21 @@ html body .medicine-form label {
   grid-column: auto;
 }
 
-html body .medicine-form label:nth-of-type(1),
-html body .medicine-form label:nth-of-type(2),
-html body .medicine-form label:nth-of-type(6),
+html body .medicine-form .field-compact {
+  grid-column: auto !important;
+}
+
+html body .medicine-form .field-full,
 html body .medicine-form .checkline,
 html body .form-actions {
-  grid-column: 1 / -1;
+  grid-column: 1 / -1 !important;
+}
+
+html body #medicine-start-time {
+  font-size: 15px;
+  padding-left: 8px;
+  padding-right: 8px;
+  text-align: center;
 }
 
 html body .schedule-item.completed .schedule-card {
@@ -1572,4 +1581,99 @@ html body .schedule-item.completed .schedule-details span {
   text-decoration: line-through !important;
   text-decoration-color: rgba(102, 112, 133, .8);
   text-decoration-thickness: 2px;
+}
+
+@media (max-width: 620px) {
+  html body.form-open .medicine-panel {
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    width: auto;
+    max-height: calc(100dvh - 28px);
+    border-radius: 24px;
+    padding: 16px;
+    transform: none;
+  }
+
+  html body .medicine-panel .form-heading {
+    margin: -16px -16px 14px;
+    padding: 16px;
+  }
+
+  html body .medicine-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 12px 10px;
+    align-items: start;
+  }
+
+  html body .medicine-form label {
+    min-width: 0;
+  }
+
+  html body .medicine-form label span {
+    min-height: 16px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html body .medicine-form input {
+    min-height: 44px;
+    border-radius: 14px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  html body #medicine-start-time {
+    min-height: 42px;
+    font-size: 15px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  html body .medicine-form .checkline {
+    min-height: 38px;
+    align-items: center;
+    margin-top: -2px;
+  }
+
+  html body .medicine-form .checkline input {
+    min-height: auto;
+  }
+
+  html body .form-actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  html body #save-button {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 900;
+  }
+
+  html body #cancel-edit {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  html body .medicine-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .medicine-form label,
+  html body .medicine-form .checkline,
+  html body .form-actions {
+    grid-column: 1 / -1;
+  }
 }

@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#177d6b">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=23">
-  <link rel="stylesheet" href="/styles.css?v=23">
-  <script type="module" src="/app.js?v=23"></script>
+  <link rel="manifest" href="/manifest.webmanifest?v=24">
+  <link rel="stylesheet" href="/styles.css?v=24">
+  <script type="module" src="/app.js?v=24"></script>
 </head>
 <body>
   <section class="auth-view" id="auth-view" hidden>
@@ -60,27 +60,27 @@
         </div>
         <form class="medicine-form" id="medicine-form">
           <input type="hidden" id="medicine-id">
-          <label>
+          <label class="field-full">
             <span>Nombre</span>
             <input id="medicine-name" required placeholder="Metformina">
           </label>
-          <label>
+          <label class="field-full">
             <span>Dosis</span>
             <input id="medicine-dose" placeholder="1 tableta">
           </label>
-          <label>
+          <label class="field-compact">
             <span>Hora de inicio</span>
             <input id="medicine-start-time" type="time" required>
           </label>
-          <label>
+          <label class="field-compact">
             <span>Cada horas</span>
             <input id="medicine-interval" type="number" min="1" max="168" required placeholder="8">
           </label>
-          <label>
+          <label class="field-compact">
             <span>Por tantos dias</span>
             <input id="medicine-duration" type="number" min="1" max="3650" required placeholder="7">
           </label>
-          <label>
+          <label class="field-full">
             <span>Notas</span>
             <input id="medicine-notes" placeholder="Despues de comer">
           </label>
