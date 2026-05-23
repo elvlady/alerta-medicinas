@@ -5,6 +5,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV DATA_DIR=/app/data
+ENV APP_TIMEZONE=America/Mazatlan
+ENV TZ=America/Mazatlan
+
+RUN apk add --no-cache tzdata
 
 COPY package.json ./
 RUN bun install --production

@@ -5,10 +5,11 @@ import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomBytes, randomUUID, pbkdf2Sync, timingSafeEqual } from "node:crypto";
 
+const APP_TIMEZONE = process.env.APP_TIMEZONE || process.env.TZ || "America/Mazatlan";
+process.env.TZ = APP_TIMEZONE;
 const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), "data");
 const DB_PATH = process.env.DATABASE_PATH || join(DATA_DIR, "app.sqlite");
-const APP_TIMEZONE = process.env.APP_TIMEZONE || "America/Chihuahua";
 const SESSION_DAYS = 30;
 const PUBLIC_DIR = fileURLToPath(new URL("../public", import.meta.url));
 
