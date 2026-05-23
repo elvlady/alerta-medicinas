@@ -1551,3 +1551,25 @@ html body .medicine-form .checkline,
 html body .form-actions {
   grid-column: 1 / -1;
 }
+
+html body .schedule-item.completed .schedule-card {
+  border-color: rgba(206, 216, 228, .9) !important;
+  background: #f8fafc !important;
+}
+
+html body .schedule-item.completed .medicine-symbol {
+  background: #eef2f6 !important;
+  color: #9aa5b3 !important;
+}
+
+html body .schedule-item.completed .schedule-details {
+  opacity: .56 !important;
+}
+
+html body .schedule-item.completed .schedule-details strong,
+html body .schedule-item.completed .schedule-details span {
+  color: #667085 !important;
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(102, 112, 133, .8);
+  text-decoration-thickness: 2px;
+}
