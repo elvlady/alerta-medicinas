@@ -349,12 +349,56 @@ function validIso(value) {
   return value && !Number.isNaN(Date.parse(value));
 }
 
+function startAtFromTime(value, fallback = new Date()) {
+  const text = String(value || "").trim();
+  const date = fallback instanceof Date ? new Date(fallback) : new Date(fallback);
+  if (Number.isNaN(date.getTime())) {
+    date.setTime(Date.now());
+  }
+  if (!text) return date.toISOString();
+
+  const match = /^(\d{1,2}):(\d{2})$/.exec(text);
+  if (!match) throw new AppError(400, "Hora de inicio invalida.");
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    throw new AppError(400, "Hora de inicio invalida.");
+  }
+  date.setHours(hours, minutes, 0, 0);
+  return date.toISOString();
+}
+
+function normalizeStartAtInput(data, fallback = new Date()) {
+  const startAt = String(data.startAt || "").trim();
+  if (validIso(startAt)) {
+    return new Date(startAt).toISOString();
+  }
+  return startAtFromTime(data.startTime, fallback);
+}
+
 function treatmentEndAt(row) {
   if (!validIso(row.start_at) || !row.duration_days) return null;
   const date = new Date(row.start_at);
   date.setDate(date.getDate() + Math.max(1, row.duration_days) - 1);
   date.setHours(23, 59, 59, 999);
   return date.toISOString();
+}
+
+function nextReminderForSchedule(startAt, intervalHours, durationDays, now = new Date()) {
+  if (!validIso(startAt)) return addHoursIso(now.toISOString(), intervalHours);
+  const intervalMs = Math.max(1, intervalHours || 24) * 60 * 60 * 1000;
+  let nextMs = Date.parse(startAt);
+  const graceMs = 60 * 1000;
+  while (nextMs + graceMs < now.getTime()) {
+    nextMs += intervalMs;
+  }
+
+  const endsAt = treatmentEndAt({ start_at: startAt, duration_days: durationDays });
+  if (endsAt && nextMs > Date.parse(endsAt)) {
+    return null;
+  }
+  return new Date(nextMs).toISOString();
 }
 
 function treatmentStatus(row, now = new Date()) {
@@ -651,7 +695,9 @@ async function handleApi(req, url) {
     const timestamp = nowIso();
     const intervalHours = normalizeIntervalHours(data.intervalHours);
     const durationDays = normalizeDurationDays(data.durationDays);
-    const nextReminderAt = addHoursIso(timestamp, intervalHours);
+    const startAt = normalizeStartAtInput(data, new Date(timestamp));
+    const active = data.active === false ? 0 : 1;
+    const nextReminderAt = active ? nextReminderForSchedule(startAt, intervalHours, durationDays, new Date(timestamp)) : null;
     db.query(`
       INSERT INTO medicines (id, user_id, name, dose, time_of_day, interval_hours, duration_days, start_at, next_reminder_at, notes, active, created_at, updated_at)
       VALUES ($id, $userId, $name, $dose, $timeOfDay, $intervalHours, $durationDays, $startAt, $nextReminderAt, $notes, $active, $createdAt, $updatedAt)
@@ -663,10 +709,10 @@ async function handleApi(req, url) {
       $timeOfDay: "00:00",
       $intervalHours: intervalHours,
       $durationDays: durationDays,
-      $startAt: timestamp,
+      $startAt: startAt,
       $nextReminderAt: nextReminderAt,
       $notes: String(data.notes || "").trim(),
-      $active: data.active === false ? 0 : 1,
+      $active: active,
       $createdAt: timestamp,
       $updatedAt: timestamp,
     });
@@ -722,13 +768,20 @@ async function handleApi(req, url) {
     const intervalHours = normalizeIntervalHours(data.intervalHours);
     const durationDays = normalizeDurationDays(data.durationDays);
     const active = data.active === false ? 0 : 1;
+    const requestedStartAt = normalizeStartAtInput(
+      data,
+      validIso(existing.start_at) ? new Date(existing.start_at) : new Date(timestamp),
+    );
     const intervalChanged = intervalHours !== (existing.interval_hours || 24);
     const durationChanged = durationDays !== (existing.duration_days || 7);
+    const startChanged = !validIso(existing.start_at) || Date.parse(requestedStartAt) !== Date.parse(existing.start_at);
     const wasReactivated = !existing.active && active;
-    const shouldResetSchedule = intervalChanged || durationChanged || wasReactivated || !existing.start_at;
-    const startAt = shouldResetSchedule ? timestamp : existing.start_at;
+    const shouldResetSchedule = intervalChanged || durationChanged || startChanged || wasReactivated || !existing.start_at;
+    const startAt = shouldResetSchedule ? requestedStartAt : existing.start_at;
     const nextReminderAt = active
-      ? (shouldResetSchedule || !existing.next_reminder_at ? addHoursIso(timestamp, intervalHours) : existing.next_reminder_at)
+      ? (shouldResetSchedule || !existing.next_reminder_at
+        ? nextReminderForSchedule(startAt, intervalHours, durationDays, new Date(timestamp))
+        : existing.next_reminder_at)
       : null;
     db.query(`
       UPDATE medicines

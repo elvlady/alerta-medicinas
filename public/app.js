@@ -91,6 +91,8 @@ function medicinePayload() {
   return {
     name: $("#medicine-name").value.trim(),
     dose: $("#medicine-dose").value.trim(),
+    startTime: $("#medicine-start-time").value,
+    startAt: startAtInputIso(),
     intervalHours: Number($("#medicine-interval").value),
     durationDays: Number($("#medicine-duration").value),
     notes: $("#medicine-notes").value.trim(),
@@ -101,6 +103,7 @@ function medicinePayload() {
 function resetMedicineForm() {
   $("#medicine-id").value = "";
   $("#medicine-form").reset();
+  $("#medicine-start-time").value = timeInputValue();
   $("#medicine-interval").value = "8";
   $("#medicine-duration").value = "7";
   $("#medicine-active").checked = true;
@@ -114,6 +117,7 @@ function editMedicine(medicine) {
   $("#medicine-id").value = medicine.id;
   $("#medicine-name").value = medicine.name;
   $("#medicine-dose").value = medicine.dose || "";
+  $("#medicine-start-time").value = timeInputValue(medicine.startAt || medicine.createdAt);
   $("#medicine-interval").value = medicine.intervalHours || 8;
   $("#medicine-duration").value = medicine.durationDays || 7;
   $("#medicine-notes").value = medicine.notes || "";
@@ -192,6 +196,30 @@ function dayTitle(date) {
 
 function daySubtitle(date) {
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function timeInputValue(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return timeInputValue(new Date());
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function startAtInputIso() {
+  const match = /^(\d{1,2}):(\d{2})$/.exec($("#medicine-start-time").value || "");
+  if (!match) return new Date().toISOString();
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const id = $("#medicine-id").value;
+  const existing = state.medicines.find((medicine) => medicine.id === id);
+  const date = existing?.startAt ? new Date(existing.startAt) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    date.setTime(Date.now());
+  }
+  date.setHours(hours, minutes, 0, 0);
+  return date.toISOString();
 }
 
 function timeParts(value) {

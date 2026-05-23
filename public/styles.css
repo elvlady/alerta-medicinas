@@ -1539,3 +1539,15 @@ html body .day-accordion summary em {
 html body .day-accordion-body {
   padding-top: 10px;
 }
+
+html body .medicine-form label {
+  grid-column: auto;
+}
+
+html body .medicine-form label:nth-of-type(1),
+html body .medicine-form label:nth-of-type(2),
+html body .medicine-form label:nth-of-type(6),
+html body .medicine-form .checkline,
+html body .form-actions {
+  grid-column: 1 / -1;
+}
