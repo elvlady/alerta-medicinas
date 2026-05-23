@@ -1473,7 +1473,7 @@ html body .day-accordion {
 html body .day-accordion summary {
   min-height: 56px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 22px;
+  grid-template-columns: minmax(0, 1fr) auto 18px;
   align-items: center;
   gap: 10px;
   border-radius: 18px;
@@ -1490,17 +1490,20 @@ html body .day-accordion summary::-webkit-details-marker {
 }
 
 html body .day-accordion summary::after {
-  content: ">";
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  font-size: 18px;
-  font-weight: 900;
-  transition: transform .16s ease;
+  content: "";
+  width: 9px;
+  height: 9px;
+  justify-self: center;
+  border-right: 2.4px solid var(--accent);
+  border-bottom: 2.4px solid var(--accent);
+  border-radius: 1px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  transition: transform .16s ease, opacity .16s ease;
 }
 
 html body .day-accordion[open] summary::after {
-  transform: rotate(90deg);
+  transform: rotate(45deg);
 }
 
 html body .day-accordion summary span {
