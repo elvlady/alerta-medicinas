@@ -144,6 +144,17 @@ function resetTreatmentForm() {
   $("#treatment-form-title").textContent = "Nuevo tratamiento";
 }
 
+function editTreatment(treatment) {
+  $("#treatment-id").value = treatment.id;
+  $("#treatment-name").value = treatment.name || "";
+  $("#treatment-start-date").value = dateInputValue(treatment.startAt);
+  $("#treatment-end-date").value = dateInputValue(treatment.endAt);
+  $("#treatment-save-button").textContent = "Actualizar";
+  $("#treatment-form-title").textContent = "Editar tratamiento";
+  setTreatmentFormOpen(true);
+  $("#treatment-name").focus();
+}
+
 function resetMedicineForm() {
   $("#medicine-id").value = "";
   $("#medicine-form").reset();
@@ -348,7 +359,7 @@ function closeSwipeRow(row) {
 }
 
 function closeSwipeRows(except = null) {
-  document.querySelectorAll(".schedule-item.actions-open").forEach((row) => {
+  document.querySelectorAll(".schedule-item.actions-open, .treatment-row.actions-open").forEach((row) => {
     if (row !== except) closeSwipeRow(row);
   });
 }
@@ -536,18 +547,44 @@ function renderTreatmentHeader() {
 }
 
 function createTreatmentCard(treatment) {
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "treatment-card";
-  card.innerHTML = `
-    <span>
-      <strong>${escapeHtml(treatment.name)}</strong>
-      <small>${escapeHtml(treatmentRange(treatment))}</small>
-    </span>
-    <em>${treatment.medicineCount || 0} ${(treatment.medicineCount || 0) === 1 ? "medicina" : "medicinas"}</em>
+  const row = document.createElement("article");
+  row.className = "treatment-row";
+  row.innerHTML = `
+    <div class="swipe-shell">
+      <div class="swipe-actions" aria-label="Acciones de ${escapeHtml(treatment.name)}">
+        <button type="button" data-action="edit">Editar</button>
+        <button type="button" class="danger" data-action="delete">Eliminar</button>
+      </div>
+      <div class="treatment-card" data-swipe-card role="button" tabindex="0">
+        <span>
+          <strong>${escapeHtml(treatment.name)}</strong>
+          <small>${escapeHtml(treatmentRange(treatment))}</small>
+        </span>
+        <em>${treatment.medicineCount || 0} ${(treatment.medicineCount || 0) === 1 ? "medicina" : "medicinas"}</em>
+      </div>
+    </div>
   `;
-  card.addEventListener("click", () => enterTreatment(treatment.id));
-  return card;
+  const card = row.querySelector("[data-swipe-card]");
+  card.addEventListener("click", () => {
+    if (row.classList.contains("actions-open")) return;
+    enterTreatment(treatment.id);
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    if (!row.classList.contains("actions-open")) enterTreatment(treatment.id);
+  });
+  row.querySelector('[data-action="edit"]').addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeSwipeRow(row);
+    editTreatment(treatment);
+  });
+  row.querySelector('[data-action="delete"]').addEventListener("click", (event) => {
+    event.stopPropagation();
+    deleteTreatment(treatment.id);
+  });
+  setupSwipe(row, card);
+  return row;
 }
 
 function renderTreatments() {
@@ -696,6 +733,15 @@ async function saveMedicine(event) {
 async function deleteMedicine(id) {
   await api(`/api/medicines/${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadMedicines();
+  await loadTreatments();
+}
+
+async function deleteTreatment(id) {
+  if (!window.confirm("Eliminar este tratamiento y sus medicinas?")) return;
+  await api(`/api/treatments/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (state.selectedTreatmentId === id) {
+    setView("treatments");
+  }
   await loadTreatments();
 }
 

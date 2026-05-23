@@ -1085,7 +1085,8 @@ body.form-open .fab-button {
   margin-bottom: 8px;
 }
 
-.swipe-shell .schedule-card {
+.swipe-shell .schedule-card,
+.swipe-shell .treatment-card {
   position: relative;
   z-index: 2;
   width: 100%;
@@ -1129,7 +1130,8 @@ body.form-open .fab-button {
   color: #b33131;
 }
 
-.schedule-item.actions-open .schedule-card {
+.schedule-item.actions-open .schedule-card,
+.treatment-row.actions-open .treatment-card {
   transform: translateX(-138px);
 }
 
@@ -1833,6 +1835,13 @@ html body .treatment-card {
   box-shadow: 0 8px 20px rgba(31, 43, 61, .06);
   padding: 16px;
   text-align: left;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+html body .treatment-card:focus-visible {
+  outline: 2px solid rgba(49, 103, 189, .28);
+  outline-offset: 2px;
 }
 
 html body .treatment-card span {

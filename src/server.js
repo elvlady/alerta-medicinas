@@ -858,6 +858,23 @@ async function handleApi(req, url) {
     return json({ ok: true, treatment: normalizeTreatment(treatment) });
   }
 
+  if (treatmentMatch && method === "DELETE") {
+    const id = treatmentMatch[1];
+    requireTreatment(user.id, id);
+    db.query(`
+      DELETE FROM dose_completions
+      WHERE user_id = $userId
+        AND medicine_id IN (
+          SELECT id FROM medicines WHERE user_id = $userId AND treatment_id = $treatmentId
+        )
+    `).run({ $userId: user.id, $treatmentId: id });
+    db.query("DELETE FROM medicines WHERE user_id = $userId AND treatment_id = $treatmentId")
+      .run({ $userId: user.id, $treatmentId: id });
+    db.query("DELETE FROM treatments WHERE id = $id AND user_id = $userId")
+      .run({ $id: id, $userId: user.id });
+    return json({ ok: true });
+  }
+
   if (path === "/api/medicines" && method === "GET") {
     const treatmentId = String(url.searchParams.get("treatmentId") || "").trim();
     if (treatmentId) requireTreatment(user.id, treatmentId);
