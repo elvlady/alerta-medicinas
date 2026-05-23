@@ -5,17 +5,42 @@ const state = {
   medicines: [],
   formOpen: false,
   selectedDate: "",
+  clientId: "",
 };
 
 const SWIPE_ACTION_WIDTH = 138;
+const CLIENT_ID_KEY = "alerta_medicinas_client_id";
 
 const $ = (selector) => document.querySelector(selector);
+
+function randomClientId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  const bytes = new Uint8Array(24);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function getClientId() {
+  if (state.clientId) return state.clientId;
+  try {
+    let clientId = localStorage.getItem(CLIENT_ID_KEY);
+    if (!clientId || !/^[a-zA-Z0-9_-]{20,120}$/.test(clientId)) {
+      clientId = randomClientId();
+      localStorage.setItem(CLIENT_ID_KEY, clientId);
+    }
+    state.clientId = clientId;
+  } catch {
+    state.clientId = state.clientId || randomClientId();
+  }
+  return state.clientId;
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
     credentials: "same-origin",
     headers: {
       "content-type": "application/json",
+      "x-client-id": getClientId(),
       ...(options.headers || {}),
     },
     ...options,
@@ -634,11 +659,6 @@ async function boot() {
   const me = await api("/api/me");
   state.user = me.user;
   state.pushPublicKey = me.pushPublicKey;
-  setAuthMode(me.setupRequired);
-  if (!me.authenticated) {
-    showAuth();
-    return;
-  }
   showApp();
   refreshPushSwitch();
   await loadMedicines();
@@ -658,7 +678,11 @@ $("#logout-button").addEventListener("click", logout);
 resetMedicineForm();
 
 boot().catch((error) => {
-  setAuthMode(false);
-  showAuth();
-  $("#auth-message").textContent = error.message;
+  showApp();
+  const list = $("#medicine-list");
+  list.innerHTML = "";
+  const empty = document.createElement("div");
+  empty.className = "empty-state";
+  empty.textContent = error.message;
+  list.append(empty);
 });

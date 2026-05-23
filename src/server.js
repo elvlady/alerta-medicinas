@@ -3,7 +3,7 @@ import webpush from "web-push";
 import { existsSync, mkdirSync } from "node:fs";
 import { join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomBytes, randomUUID, pbkdf2Sync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomUUID, pbkdf2Sync, timingSafeEqual } from "node:crypto";
 
 const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), "data");
@@ -190,6 +190,38 @@ function publicUser(user) {
   return { id: user.id, username: user.username, name: user.name };
 }
 
+function normalizeClientId(value) {
+  const clientId = String(value || "").trim();
+  if (!/^[a-zA-Z0-9_-]{20,120}$/.test(clientId)) return "";
+  return clientId;
+}
+
+function localUsername(clientId) {
+  return `local_${base64Url(createHash("sha256").update(clientId).digest()).slice(0, 36)}`;
+}
+
+function getOrCreateLocalUser(clientId) {
+  const username = localUsername(clientId);
+  const existing = db.query("SELECT id, username, name FROM users WHERE username = $username")
+    .get({ $username: username });
+  if (existing) return existing;
+
+  const id = randomUUID();
+  const timestamp = nowIso();
+  db.query(`
+    INSERT INTO users (id, username, name, password_hash, created_at)
+    VALUES ($id, $username, $name, $passwordHash, $createdAt)
+  `).run({
+    $id: id,
+    $username: username,
+    $name: "Dispositivo",
+    $passwordHash: `local-device$${base64Url(randomBytes(24))}`,
+    $createdAt: timestamp,
+  });
+
+  return { id, username, name: "Dispositivo" };
+}
+
 function syncAdminFromEnv() {
   const username = String(process.env.ADMIN_USERNAME || "").trim().toLowerCase();
   const password = String(process.env.ADMIN_PASSWORD || "");
@@ -234,6 +266,11 @@ function syncAdminFromEnv() {
 syncAdminFromEnv();
 
 function getUserFromRequest(req) {
+  const clientId = normalizeClientId(req.headers.get("x-client-id"));
+  if (clientId) {
+    return getOrCreateLocalUser(clientId);
+  }
+
   const sid = parseCookies(req.headers.get("cookie")).med_session;
   if (!sid) return null;
   const session = db
@@ -251,7 +288,7 @@ function getUserFromRequest(req) {
 function requireUser(req) {
   const user = getUserFromRequest(req);
   if (!user) {
-    throw new AppError(401, "Necesitas iniciar sesion.");
+    throw new AppError(401, "No se pudo identificar este dispositivo.");
   }
   return user;
 }
@@ -530,7 +567,7 @@ async function handleApi(req, url) {
     return json({
       ok: true,
       authenticated: Boolean(user),
-      setupRequired: userCount() === 0,
+      setupRequired: false,
       user: user ? publicUser(user) : null,
       pushPublicKey: vapidPublicKey,
     });
