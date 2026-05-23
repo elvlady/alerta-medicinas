@@ -4,6 +4,7 @@ const state = {
   pushPublicKey: "",
   medicines: [],
   formOpen: false,
+  selectedDate: "",
 };
 
 const SWIPE_ACTION_WIDTH = 138;
@@ -112,12 +113,51 @@ function shortMedicineMeta(medicine) {
   return [dose, "cd", `${interval}hr`, "x", durationText].filter(Boolean).join(" ");
 }
 
-function startOfToday(now = new Date()) {
+function startOfDay(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-function endOfToday(now = new Date()) {
+function endOfDay(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
+function startOfToday(now = new Date()) {
+  return startOfDay(now);
+}
+
+function endOfToday(now = new Date()) {
+  return endOfDay(now);
+}
+
+function addDays(value, days) {
+  const date = startOfDay(value);
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+function selectedDate() {
+  const date = state.selectedDate ? new Date(state.selectedDate) : new Date();
+  return startOfDay(Number.isNaN(date.getTime()) ? new Date() : date);
+}
+
+function setSelectedDate(value) {
+  state.selectedDate = startOfDay(value).toISOString();
+}
+
+function sameDay(a, b) {
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+function dayTitle(date) {
+  const today = startOfToday();
+  if (sameDay(date, today)) return "HOY";
+  if (sameDay(date, addDays(today, 1))) return "MANANA";
+  if (sameDay(date, addDays(today, 2))) return "PASADO MANANA";
+  return date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
+}
+
+function daySubtitle(date) {
+  return date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function timeParts(value) {
@@ -133,16 +173,16 @@ function doseKey(value) {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
-function scheduleForMedicine(medicine, now = new Date()) {
-  if (!medicine.active || medicine.treatmentStatus === "completed") return [];
+function scheduleForMedicine(medicine, day = new Date()) {
+  if (!medicine.active) return [];
 
   const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
   const end = medicine.endsAt ? new Date(medicine.endsAt) : null;
   if (Number.isNaN(start.getTime())) return [];
 
-  const dayStart = startOfToday(now);
-  const dayEnd = endOfToday(now);
-  if (end && end < dayStart) return [];
+  const dayStart = startOfDay(day);
+  const dayEnd = endOfDay(day);
+  if (dayEnd < start || (end && dayStart > end)) return [];
 
   const intervalMs = Math.max(1, medicine.intervalHours || 8) * 60 * 60 * 1000;
   const completedDoses = new Set(medicine.completedDoses || []);
@@ -160,10 +200,28 @@ function scheduleForMedicine(medicine, now = new Date()) {
   return items;
 }
 
-function nextFallbackItem(medicine) {
-  const nextDate = medicine.nextReminderAt ? new Date(medicine.nextReminderAt) : null;
-  if (!nextDate || Number.isNaN(nextDate.getTime())) return null;
-  return { medicine, date: nextDate, completed: new Set(medicine.completedDoses || []).has(doseKey(nextDate)), fallback: true };
+function lastScheduleDate() {
+  const today = startOfToday();
+  let last = today;
+  for (const medicine of state.medicines) {
+    if (!medicine.active) continue;
+    const end = medicine.endsAt ? new Date(medicine.endsAt) : null;
+    const start = new Date(medicine.startAt || medicine.createdAt || Date.now());
+    const candidate = end && !Number.isNaN(end.getTime()) ? end : addDays(start, medicine.durationDays || 7);
+    if (!Number.isNaN(candidate.getTime()) && candidate > last) {
+      last = candidate;
+    }
+  }
+  return startOfDay(last);
+}
+
+function changeSelectedDay(days) {
+  const today = startOfToday();
+  const last = lastScheduleDate();
+  const next = addDays(selectedDate(), days);
+  if (next < today || next > last) return;
+  setSelectedDate(next);
+  renderMedicines();
 }
 
 function closeSwipeRow(row) {
@@ -257,19 +315,31 @@ function renderMedicines() {
     return;
   }
 
-  const now = new Date();
-  let items = state.medicines.flatMap((medicine) => scheduleForMedicine(medicine, now));
-  const isFallback = !items.length;
-  if (isFallback) {
-    items = state.medicines.map(nextFallbackItem).filter(Boolean);
-  }
+  const day = selectedDate();
+  const today = startOfToday();
+  const last = lastScheduleDate();
+  const items = state.medicines.flatMap((medicine) => scheduleForMedicine(medicine, day));
   items.sort((a, b) => a.date - b.date);
 
   const completed = items.filter((item) => item.completed).length;
+  const nav = document.createElement("div");
+  nav.className = "day-nav";
+  nav.innerHTML = `
+    <button type="button" data-action="prev-day" aria-label="Dia anterior" ${day <= today ? "disabled" : ""}>&lt;</button>
+    <div>
+      <strong>${escapeHtml(dayTitle(day))}</strong>
+      <span>${escapeHtml(daySubtitle(day))}</span>
+    </div>
+    <button type="button" data-action="next-day" aria-label="Dia siguiente" ${day >= last ? "disabled" : ""}>&gt;</button>
+  `;
+  nav.querySelector('[data-action="prev-day"]').addEventListener("click", () => changeSelectedDay(-1));
+  nav.querySelector('[data-action="next-day"]').addEventListener("click", () => changeSelectedDay(1));
+  list.append(nav);
+
   const header = document.createElement("div");
   header.className = "schedule-header";
   header.innerHTML = `
-    <span>${isFallback ? "PROXIMAS TOMAS" : "CRONOGRAMA DE HOY"}</span>
+    <span>CRONOGRAMA DE ${escapeHtml(dayTitle(day))}</span>
     <strong>${completed}/${items.length} completadas</strong>
   `;
   list.append(header);
@@ -277,7 +347,7 @@ function renderMedicines() {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No hay tomas programadas.";
+    empty.textContent = "No hay tomas programadas este dia.";
     list.append(empty);
     return;
   }
@@ -348,6 +418,10 @@ function escapeHtml(value) {
 async function loadMedicines() {
   const data = await api("/api/medicines");
   state.medicines = data.medicines;
+  const today = startOfToday();
+  const last = lastScheduleDate();
+  if (selectedDate() < today) setSelectedDate(today);
+  if (selectedDate() > last) setSelectedDate(last);
   renderMedicines();
 }
 

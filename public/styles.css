@@ -1408,3 +1408,56 @@ html body .schedule-actions .dose-state {
   min-height: 38px;
   padding: 0;
 }
+
+html body .day-nav {
+  width: min(320px, 100%);
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 18px;
+}
+
+html body .day-nav button {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 43, 61, .08);
+  color: var(--accent);
+  font-size: 22px;
+  font-weight: 900;
+  padding: 0;
+}
+
+html body .day-nav button:disabled {
+  opacity: .36;
+}
+
+html body .day-nav div {
+  min-height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 43, 61, .06);
+  padding: 7px 14px;
+  text-align: center;
+}
+
+html body .day-nav strong {
+  color: #25334b;
+  font-size: 14px;
+  line-height: 1.1;
+}
+
+html body .day-nav span {
+  color: #8a92a0;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
