@@ -1344,15 +1344,37 @@ html body .schedule-item.completed .schedule-details {
 }
 
 html body .swipe-shell .schedule-card {
-  min-height: 70px;
-  grid-template-columns: 44px minmax(0, 1fr) 42px;
-  grid-template-rows: 1fr;
+  min-height: 74px;
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) 42px !important;
+  grid-template-rows: 1fr !important;
+  grid-template-areas: "symbol details action" !important;
+  gap: 12px !important;
   align-items: center;
+  direction: ltr;
   background: #ffffff !important;
+  padding: 12px 14px !important;
+}
+
+html body .swipe-shell .medicine-symbol {
+  grid-area: symbol !important;
+  align-self: center;
+  justify-self: center;
 }
 
 html body .schedule-details {
+  grid-area: details !important;
+  min-width: 0;
   align-self: center;
+  justify-self: stretch;
+}
+
+html body .schedule-details strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 html body .schedule-details span {
@@ -1365,15 +1387,16 @@ html body .schedule-details span {
 }
 
 html body .schedule-actions {
+  grid-area: action !important;
   width: 42px;
   height: 38px;
   min-height: 0;
   display: grid !important;
-  grid-column: auto !important;
+  grid-column: 3 !important;
   grid-row: 1 !important;
   place-items: center;
   align-self: center;
-  justify-self: end;
+  justify-self: center;
   justify-content: center;
   border-top: 0 !important;
   padding-top: 0 !important;
