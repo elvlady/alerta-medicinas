@@ -2,10 +2,15 @@ const state = {
   user: null,
   setupRequired: false,
   pushPublicKey: "",
+  treatments: [],
   medicines: [],
   formOpen: false,
+  treatmentFormOpen: false,
   clientId: "",
   openDays: new Set(),
+  selectedTreatmentId: "",
+  view: "treatments",
+  todayKey: "",
 };
 
 const SWIPE_ACTION_WIDTH = 138;
@@ -63,7 +68,10 @@ function setAuthMode(setupRequired) {
 
 function showAuth() {
   state.formOpen = false;
+  state.treatmentFormOpen = false;
   document.body.classList.remove("form-open");
+  document.body.classList.remove("treatment-form-open");
+  document.body.classList.remove("detail-view");
   $("#auth-view").hidden = false;
   $("#app-view").hidden = true;
 }
@@ -79,6 +87,7 @@ function showApp() {
   $("#auth-view").hidden = true;
   $("#app-view").hidden = false;
   setFormOpen(false);
+  setTreatmentFormOpen(false);
 }
 
 function setFormOpen(open) {
@@ -87,8 +96,15 @@ function setFormOpen(open) {
   $("#form-title").textContent = $("#medicine-id").value ? "Editar medicina" : "Nueva medicina";
 }
 
+function setTreatmentFormOpen(open) {
+  state.treatmentFormOpen = open;
+  document.body.classList.toggle("treatment-form-open", open);
+  $("#treatment-form-title").textContent = $("#treatment-id").value ? "Editar tratamiento" : "Nuevo tratamiento";
+}
+
 function medicinePayload() {
   return {
+    treatmentId: state.selectedTreatmentId,
     name: $("#medicine-name").value.trim(),
     dose: $("#medicine-dose").value.trim(),
     startTime: $("#medicine-start-time").value,
@@ -98,6 +114,34 @@ function medicinePayload() {
     notes: $("#medicine-notes").value.trim(),
     active: $("#medicine-active").checked,
   };
+}
+
+function dateInputValue(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return dateInputValue(new Date());
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function treatmentPayload() {
+  return {
+    name: $("#treatment-name").value.trim(),
+    startDate: $("#treatment-start-date").value,
+    endDate: $("#treatment-end-date").value,
+  };
+}
+
+function resetTreatmentForm() {
+  const today = new Date();
+  const end = addDays(today, 6);
+  $("#treatment-id").value = "";
+  $("#treatment-form").reset();
+  $("#treatment-start-date").value = dateInputValue(today);
+  $("#treatment-end-date").value = dateInputValue(end);
+  $("#treatment-save-button").textContent = "Guardar";
+  $("#treatment-form-title").textContent = "Nuevo tratamiento";
 }
 
 function resetMedicineForm() {
@@ -110,6 +154,10 @@ function resetMedicineForm() {
   $("#save-button").textContent = "Guardar";
   $("#form-title").textContent = "Nueva medicina";
   $("#cancel-edit").hidden = true;
+}
+
+function selectedTreatment() {
+  return state.treatments.find((treatment) => treatment.id === state.selectedTreatmentId) || null;
 }
 
 function editMedicine(medicine) {
@@ -198,6 +246,16 @@ function daySubtitle(date) {
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function treatmentRange(treatment) {
+  return `${formatDate(treatment.startAt)} - ${formatDate(treatment.endAt)}`;
+}
+
 function timeInputValue(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return timeInputValue(new Date());
@@ -214,7 +272,12 @@ function startAtInputIso() {
   const minutes = Number(match[2]);
   const id = $("#medicine-id").value;
   const existing = state.medicines.find((medicine) => medicine.id === id);
-  const date = existing?.startAt ? new Date(existing.startAt) : new Date();
+  const treatment = selectedTreatment();
+  const treatmentStart = treatment?.startAt ? new Date(treatment.startAt) : null;
+  const today = new Date();
+  const date = existing?.startAt
+    ? new Date(existing.startAt)
+    : (treatmentStart && treatmentStart > today ? treatmentStart : today);
   if (Number.isNaN(date.getTime())) {
     date.setTime(Date.now());
   }
@@ -456,13 +519,74 @@ function createDayAccordion(group, index) {
   return section;
 }
 
+function setView(view) {
+  state.view = view;
+  document.body.classList.toggle("detail-view", view === "detail");
+  if (view === "treatments") {
+    state.selectedTreatmentId = "";
+    state.medicines = [];
+    state.openDays.clear();
+    setFormOpen(false);
+  }
+}
+
+function renderTreatmentHeader() {
+  const count = state.treatments.length;
+  $("#treatment-count").textContent = `${count} ${count === 1 ? "tratamiento" : "tratamientos"}`;
+}
+
+function createTreatmentCard(treatment) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "treatment-card";
+  card.innerHTML = `
+    <span>
+      <strong>${escapeHtml(treatment.name)}</strong>
+      <small>${escapeHtml(treatmentRange(treatment))}</small>
+    </span>
+    <em>${treatment.medicineCount || 0} ${(treatment.medicineCount || 0) === 1 ? "medicina" : "medicinas"}</em>
+  `;
+  card.addEventListener("click", () => enterTreatment(treatment.id));
+  return card;
+}
+
+function renderTreatments() {
+  renderTreatmentHeader();
+  const list = $("#treatment-list");
+  list.innerHTML = "";
+
+  if (!state.treatments.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Crea tu primer tratamiento.";
+    list.append(empty);
+    return;
+  }
+
+  state.treatments.forEach((treatment) => list.append(createTreatmentCard(treatment)));
+}
+
+function renderSelectedTreatment() {
+  const treatment = selectedTreatment();
+  $("#selected-treatment-name").textContent = treatment?.name || "Tratamiento";
+  $("#selected-treatment-range").textContent = treatment ? treatmentRange(treatment) : "";
+}
+
 function renderMedicines() {
   const list = $("#medicine-list");
   list.innerHTML = "";
+  renderSelectedTreatment();
+  if (!state.selectedTreatmentId) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Selecciona un tratamiento.";
+    list.append(empty);
+    return;
+  }
   if (!state.medicines.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "Aun no hay medicinas guardadas.";
+    empty.textContent = "Aun no hay medicinas en este tratamiento.";
     list.append(empty);
     return;
   }
@@ -495,13 +619,61 @@ function escapeHtml(value) {
 }
 
 async function loadMedicines() {
-  const data = await api("/api/medicines");
+  if (!state.selectedTreatmentId) {
+    state.medicines = [];
+    renderMedicines();
+    return;
+  }
+  const data = await api(`/api/medicines?treatmentId=${encodeURIComponent(state.selectedTreatmentId)}`);
   state.medicines = data.medicines;
   renderMedicines();
 }
 
+async function loadTreatments() {
+  const data = await api("/api/treatments");
+  state.treatments = data.treatments;
+  if (state.selectedTreatmentId && !selectedTreatment()) {
+    setView("treatments");
+  }
+  renderTreatments();
+  renderSelectedTreatment();
+}
+
+async function enterTreatment(id) {
+  state.selectedTreatmentId = id;
+  state.openDays.clear();
+  setView("detail");
+  renderSelectedTreatment();
+  await loadMedicines();
+}
+
+function backToTreatments() {
+  setView("treatments");
+  renderTreatments();
+}
+
+async function saveTreatment(event) {
+  event.preventDefault();
+  const id = $("#treatment-id").value;
+  const payload = treatmentPayload();
+  const data = id
+    ? await api(`/api/treatments/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+    : await api("/api/treatments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  resetTreatmentForm();
+  setTreatmentFormOpen(false);
+  await loadTreatments();
+  await enterTreatment(data.treatment.id);
+}
+
 async function saveMedicine(event) {
   event.preventDefault();
+  if (!state.selectedTreatmentId) return;
   const id = $("#medicine-id").value;
   const payload = medicinePayload();
   if (id) {
@@ -518,11 +690,13 @@ async function saveMedicine(event) {
   resetMedicineForm();
   setFormOpen(false);
   await loadMedicines();
+  await loadTreatments();
 }
 
 async function deleteMedicine(id) {
   await api(`/api/medicines/${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadMedicines();
+  await loadTreatments();
 }
 
 async function toggleDoseCompletion(medicine, date, completed) {
@@ -546,6 +720,15 @@ async function toggleDoseCompletion(medicine, date, completed) {
     console.error(error);
     await loadMedicines();
   }
+}
+
+function refreshDateLabels(force = false) {
+  const currentKey = dayKey(new Date());
+  if (!force && state.todayKey === currentKey) return;
+  state.todayKey = currentKey;
+  state.openDays.clear();
+  renderTreatments();
+  if (state.view === "detail") renderMedicines();
 }
 
 function urlBase64ToUint8Array(base64String) {
@@ -701,26 +884,41 @@ async function boot() {
   state.user = me.user;
   state.pushPublicKey = me.pushPublicKey;
   showApp();
+  setView("treatments");
   refreshPushSwitch();
-  await loadMedicines();
+  await loadTreatments();
 }
 
 $("#auth-form").addEventListener("submit", authenticate);
+$("#treatment-form").addEventListener("submit", saveTreatment);
 $("#medicine-form").addEventListener("submit", saveMedicine);
 $("#cancel-edit").addEventListener("click", resetMedicineForm);
 $("#fab-button").addEventListener("click", () => {
-  resetMedicineForm();
-  setFormOpen(true);
+  if (state.view === "detail" && state.selectedTreatmentId) {
+    resetMedicineForm();
+    setFormOpen(true);
+    return;
+  }
+  resetTreatmentForm();
+  setTreatmentFormOpen(true);
 });
 $("#close-form-button").addEventListener("click", () => setFormOpen(false));
+$("#treatment-close-form-button").addEventListener("click", () => setTreatmentFormOpen(false));
+$("#back-to-treatments").addEventListener("click", backToTreatments);
 $("#push-button").addEventListener("click", activatePush);
 $("#logout-button").addEventListener("click", logout);
 
 resetMedicineForm();
+resetTreatmentForm();
+state.todayKey = dayKey(new Date());
+setInterval(() => refreshDateLabels(), 60 * 1000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshDateLabels();
+});
 
 boot().catch((error) => {
   showApp();
-  const list = $("#medicine-list");
+  const list = $("#treatment-list");
   list.innerHTML = "";
   const empty = document.createElement("div");
   empty.className = "empty-state";

@@ -1677,3 +1677,237 @@ html body .schedule-item.completed .schedule-details span {
     grid-column: 1 / -1;
   }
 }
+
+html body .treatment-panel {
+  display: none;
+}
+
+html body.treatment-form-open .app-view::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(31, 43, 61, .34);
+}
+
+html body.treatment-form-open .treatment-panel {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 45;
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 28px);
+  display: block;
+  overflow: auto;
+  border-radius: 24px;
+  padding: 16px;
+  transform: none;
+}
+
+@media (min-width: 621px) {
+  html body.treatment-form-open .treatment-panel {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+
+html body .treatment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 10px;
+  align-items: start;
+}
+
+html body .treatment-form .field-full,
+html body .treatment-form .form-actions {
+  grid-column: 1 / -1;
+}
+
+html body .treatment-form input {
+  min-height: 44px;
+  border-radius: 14px;
+}
+
+html body #treatment-save-button {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+html body .view-viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+html body .view-slider {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 100% 100%;
+  transition: transform .26s ease;
+  will-change: transform;
+}
+
+html body.detail-view .view-slider {
+  transform: translateX(-100%);
+}
+
+html body .treatments-view,
+html body .schedule-view {
+  min-width: 0;
+}
+
+html body .treatments-view {
+  padding-bottom: 8px;
+}
+
+html body .schedule-view {
+  padding-left: 0;
+}
+
+html body .treatments-header,
+html body .detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+html body .treatments-header h2,
+html body .detail-header h2 {
+  margin: 0;
+  color: #25334b;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+html body .treatments-header strong,
+html body #selected-treatment-range {
+  color: #8a92a0;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+html body .detail-header {
+  justify-content: flex-start;
+}
+
+html body .back-button {
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 43, 61, .08);
+  color: var(--accent);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 0 3px;
+}
+
+html body .treatment-list {
+  display: grid;
+  gap: 10px;
+}
+
+html body .treatment-card {
+  width: 100%;
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(31, 43, 61, .06);
+  padding: 16px;
+  text-align: left;
+}
+
+html body .treatment-card span {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+html body .treatment-card strong {
+  overflow: hidden;
+  color: #25334b;
+  font-size: 18px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body .treatment-card small {
+  overflow: hidden;
+  color: #7c8796;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body .treatment-card em {
+  border-radius: 999px;
+  background: #eef5ff;
+  color: var(--accent);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  html body.treatment-form-open .treatment-panel {
+    width: auto;
+  }
+
+  html body .treatment-panel .form-heading {
+    margin: -16px -16px 14px;
+    padding: 16px;
+  }
+
+  html body .treatment-form label {
+    min-width: 0;
+  }
+
+  html body .treatment-form label span {
+    min-height: 16px;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html body .treatment-form input {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  html body .treatment-form {
+    grid-template-columns: 1fr;
+  }
+
+  html body .treatment-form label,
+  html body .treatment-form .form-actions {
+    grid-column: 1 / -1;
+  }
+}

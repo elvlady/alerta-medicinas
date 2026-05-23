@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE TABLE IF NOT EXISTS medicines (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  treatment_id TEXT,
   name TEXT NOT NULL,
   dose TEXT NOT NULL DEFAULT '',
   time_of_day TEXT NOT NULL,
@@ -55,6 +56,20 @@ CREATE TABLE IF NOT EXISTS medicines (
 
 CREATE INDEX IF NOT EXISTS medicines_user_idx ON medicines(user_id);
 CREATE INDEX IF NOT EXISTS medicines_due_idx ON medicines(active, time_of_day, last_notified_on);
+
+CREATE TABLE IF NOT EXISTS treatments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  start_at TEXT NOT NULL,
+  end_at TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS treatments_user_idx ON treatments(user_id, start_at);
 
 CREATE TABLE IF NOT EXISTS dose_completions (
   id TEXT PRIMARY KEY,
@@ -100,7 +115,9 @@ ensureColumn("medicines", "duration_days", "duration_days INTEGER");
 ensureColumn("medicines", "start_at", "start_at TEXT");
 ensureColumn("medicines", "last_notified_at", "last_notified_at TEXT");
 ensureColumn("medicines", "next_reminder_at", "next_reminder_at TEXT");
+ensureColumn("medicines", "treatment_id", "treatment_id TEXT");
 db.exec("CREATE INDEX IF NOT EXISTS medicines_next_reminder_idx ON medicines(active, next_reminder_at)");
+db.exec("CREATE INDEX IF NOT EXISTS medicines_treatment_idx ON medicines(user_id, treatment_id)");
 
 class AppError extends Error {
   constructor(status, message) {
@@ -378,6 +395,32 @@ function normalizeStartAtInput(data, fallback = new Date()) {
   return startAtFromTime(data.startTime, fallback);
 }
 
+function normalizeDateInput(value, label, endOfDate = false) {
+  const text = String(value || "").trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) throw new AppError(400, `${label} no es valida.`);
+
+  const year = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const day = Number(match[3]);
+  const date = new Date(year, month, day, endOfDate ? 23 : 0, endOfDate ? 59 : 0, endOfDate ? 59 : 0, endOfDate ? 999 : 0);
+  if (Number.isNaN(date.getTime()) || date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
+    throw new AppError(400, `${label} no es valida.`);
+  }
+  return date.toISOString();
+}
+
+function normalizeTreatmentDateInput(data, key, label, endOfDate = false) {
+  const iso = String(data[key === "start" ? "startAt" : "endAt"] || "").trim();
+  if (validIso(iso)) {
+    const date = new Date(iso);
+    if (endOfDate) date.setHours(23, 59, 59, 999);
+    else date.setHours(0, 0, 0, 0);
+    return date.toISOString();
+  }
+  return normalizeDateInput(data[key === "start" ? "startDate" : "endDate"], label, endOfDate);
+}
+
 function treatmentEndAt(row) {
   if (!validIso(row.start_at) || !row.duration_days) return null;
   const date = new Date(row.start_at);
@@ -441,6 +484,7 @@ function normalizeMedicine(row, completedDoses = []) {
   const normalizedRow = { ...row, interval_hours: intervalHours, duration_days: durationDays, start_at: startAt };
   return {
     id: row.id,
+    treatmentId: row.treatment_id || "",
     name: row.name,
     dose: row.dose,
     intervalHours,
@@ -458,6 +502,29 @@ function normalizeMedicine(row, completedDoses = []) {
   };
 }
 
+function normalizeTreatment(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    startAt: row.start_at,
+    endAt: row.end_at,
+    notes: row.notes || "",
+    active: Boolean(row.active),
+    medicineCount: Number(row.medicine_count || 0),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function requireTreatment(userId, treatmentId) {
+  const id = String(treatmentId || "").trim();
+  if (!id) throw new AppError(400, "Tratamiento requerido.");
+  const treatment = db.query("SELECT * FROM treatments WHERE id = $id AND user_id = $userId")
+    .get({ $id: id, $userId: userId });
+  if (!treatment) throw new AppError(404, "Tratamiento no encontrado.");
+  return treatment;
+}
+
 function backfillReminderSchedule() {
   const timestamp = nowIso();
   const nextReminderAt = addHoursIso(timestamp, 24);
@@ -472,6 +539,52 @@ function backfillReminderSchedule() {
 }
 
 backfillReminderSchedule();
+
+function backfillTreatments() {
+  const rows = db.query(`
+    SELECT *
+    FROM medicines
+    WHERE treatment_id IS NULL OR treatment_id = ''
+    ORDER BY user_id, start_at, created_at
+  `).all();
+  const byUser = new Map();
+  for (const row of rows) {
+    if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
+    byUser.get(row.user_id).push(row);
+  }
+
+  for (const [userId, medicines] of byUser) {
+    if (!medicines.length) continue;
+    let startAt = null;
+    let endAt = null;
+    for (const medicine of medicines) {
+      const medicineStart = validIso(medicine.start_at) ? new Date(medicine.start_at) : new Date(medicine.created_at);
+      const medicineEndText = treatmentEndAt(medicine);
+      const medicineEnd = medicineEndText ? new Date(medicineEndText) : medicineStart;
+      if (!Number.isNaN(medicineStart.getTime()) && (!startAt || medicineStart < startAt)) startAt = medicineStart;
+      if (!Number.isNaN(medicineEnd.getTime()) && (!endAt || medicineEnd > endAt)) endAt = medicineEnd;
+    }
+
+    const timestamp = nowIso();
+    const id = randomUUID();
+    db.query(`
+      INSERT INTO treatments (id, user_id, name, start_at, end_at, notes, active, created_at, updated_at)
+      VALUES ($id, $userId, $name, $startAt, $endAt, '', 1, $createdAt, $updatedAt)
+    `).run({
+      $id: id,
+      $userId: userId,
+      $name: "Tratamiento actual",
+      $startAt: (startAt || new Date()).toISOString(),
+      $endAt: (endAt || startAt || new Date()).toISOString(),
+      $createdAt: timestamp,
+      $updatedAt: timestamp,
+    });
+    db.query("UPDATE medicines SET treatment_id = $treatmentId WHERE user_id = $userId AND (treatment_id IS NULL OR treatment_id = '')")
+      .run({ $treatmentId: id, $userId: userId });
+  }
+}
+
+backfillTreatments();
 
 function getSetting(key) {
   const row = db.query("SELECT value FROM settings WHERE key = $key").get({ $key: key });
@@ -666,12 +779,94 @@ async function handleApi(req, url) {
 
   const user = requireUser(req);
 
+  if (path === "/api/treatments" && method === "GET") {
+    const rows = db.query(`
+      SELECT t.*,
+             COUNT(m.id) AS medicine_count
+      FROM treatments t
+      LEFT JOIN medicines m ON m.treatment_id = t.id AND m.user_id = t.user_id
+      WHERE t.user_id = $userId
+      GROUP BY t.id
+      ORDER BY t.start_at DESC, t.created_at DESC
+    `).all({ $userId: user.id });
+    return json({ ok: true, treatments: rows.map(normalizeTreatment) });
+  }
+
+  if (path === "/api/treatments" && method === "POST") {
+    const data = await readJson(req);
+    const timestamp = nowIso();
+    const startAt = normalizeTreatmentDateInput(data, "start", "Fecha inicio");
+    const endAt = normalizeTreatmentDateInput(data, "end", "Fecha termino", true);
+    if (Date.parse(endAt) < Date.parse(startAt)) {
+      throw new AppError(400, "Fecha termino debe ser igual o posterior a fecha inicio.");
+    }
+
+    const id = randomUUID();
+    db.query(`
+      INSERT INTO treatments (id, user_id, name, start_at, end_at, notes, active, created_at, updated_at)
+      VALUES ($id, $userId, $name, $startAt, $endAt, $notes, 1, $createdAt, $updatedAt)
+    `).run({
+      $id: id,
+      $userId: user.id,
+      $name: requireString(data, "name", "Tratamiento"),
+      $startAt: startAt,
+      $endAt: endAt,
+      $notes: String(data.notes || "").trim(),
+      $createdAt: timestamp,
+      $updatedAt: timestamp,
+    });
+    const treatment = db.query("SELECT *, 0 AS medicine_count FROM treatments WHERE id = $id").get({ $id: id });
+    return json({ ok: true, treatment: normalizeTreatment(treatment) }, 201);
+  }
+
+  const treatmentMatch = path.match(/^\/api\/treatments\/([^/]+)$/);
+  if (treatmentMatch && (method === "PUT" || method === "PATCH")) {
+    const id = treatmentMatch[1];
+    requireTreatment(user.id, id);
+    const data = await readJson(req);
+    const timestamp = nowIso();
+    const startAt = normalizeTreatmentDateInput(data, "start", "Fecha inicio");
+    const endAt = normalizeTreatmentDateInput(data, "end", "Fecha termino", true);
+    if (Date.parse(endAt) < Date.parse(startAt)) {
+      throw new AppError(400, "Fecha termino debe ser igual o posterior a fecha inicio.");
+    }
+
+    db.query(`
+      UPDATE treatments
+      SET name = $name,
+          start_at = $startAt,
+          end_at = $endAt,
+          notes = $notes,
+          updated_at = $updatedAt
+      WHERE id = $id AND user_id = $userId
+    `).run({
+      $id: id,
+      $userId: user.id,
+      $name: requireString(data, "name", "Tratamiento"),
+      $startAt: startAt,
+      $endAt: endAt,
+      $notes: String(data.notes || "").trim(),
+      $updatedAt: timestamp,
+    });
+    const treatment = db.query(`
+      SELECT t.*, COUNT(m.id) AS medicine_count
+      FROM treatments t
+      LEFT JOIN medicines m ON m.treatment_id = t.id AND m.user_id = t.user_id
+      WHERE t.id = $id AND t.user_id = $userId
+      GROUP BY t.id
+    `).get({ $id: id, $userId: user.id });
+    return json({ ok: true, treatment: normalizeTreatment(treatment) });
+  }
+
   if (path === "/api/medicines" && method === "GET") {
+    const treatmentId = String(url.searchParams.get("treatmentId") || "").trim();
+    if (treatmentId) requireTreatment(user.id, treatmentId);
     const rows = db.query(`
       SELECT * FROM medicines
       WHERE user_id = $userId
+        ${treatmentId ? "AND treatment_id = $treatmentId" : ""}
       ORDER BY active DESC, next_reminder_at ASC, name ASC
-    `).all({ $userId: user.id });
+    `).all({ $userId: user.id, $treatmentId: treatmentId });
     const completedByMedicine = new Map();
     const completionRows = db.query(`
       SELECT medicine_id, scheduled_at
@@ -697,14 +892,16 @@ async function handleApi(req, url) {
     const intervalHours = normalizeIntervalHours(data.intervalHours);
     const durationDays = normalizeDurationDays(data.durationDays);
     const startAt = normalizeStartAtInput(data, new Date(timestamp));
+    const treatment = requireTreatment(user.id, data.treatmentId);
     const active = data.active === false ? 0 : 1;
     const nextReminderAt = active ? nextReminderForSchedule(startAt, intervalHours, durationDays, new Date(timestamp)) : null;
     db.query(`
-      INSERT INTO medicines (id, user_id, name, dose, time_of_day, interval_hours, duration_days, start_at, next_reminder_at, notes, active, created_at, updated_at)
-      VALUES ($id, $userId, $name, $dose, $timeOfDay, $intervalHours, $durationDays, $startAt, $nextReminderAt, $notes, $active, $createdAt, $updatedAt)
+      INSERT INTO medicines (id, user_id, treatment_id, name, dose, time_of_day, interval_hours, duration_days, start_at, next_reminder_at, notes, active, created_at, updated_at)
+      VALUES ($id, $userId, $treatmentId, $name, $dose, $timeOfDay, $intervalHours, $durationDays, $startAt, $nextReminderAt, $notes, $active, $createdAt, $updatedAt)
     `).run({
       $id: id,
       $userId: user.id,
+      $treatmentId: treatment.id,
       $name: requireString(data, "name", "Nombre"),
       $dose: String(data.dose || "").trim(),
       $timeOfDay: "00:00",
@@ -769,6 +966,7 @@ async function handleApi(req, url) {
     const intervalHours = normalizeIntervalHours(data.intervalHours);
     const durationDays = normalizeDurationDays(data.durationDays);
     const active = data.active === false ? 0 : 1;
+    const treatmentId = data.treatmentId ? requireTreatment(user.id, data.treatmentId).id : existing.treatment_id;
     const requestedStartAt = normalizeStartAtInput(
       data,
       validIso(existing.start_at) ? new Date(existing.start_at) : new Date(timestamp),
@@ -788,6 +986,7 @@ async function handleApi(req, url) {
       UPDATE medicines
       SET name = $name,
           dose = $dose,
+          treatment_id = $treatmentId,
           time_of_day = $timeOfDay,
           interval_hours = $intervalHours,
           duration_days = $durationDays,
@@ -800,6 +999,7 @@ async function handleApi(req, url) {
     `).run({
       $id: id,
       $userId: user.id,
+      $treatmentId: treatmentId,
       $name: requireString(data, "name", "Nombre"),
       $dose: String(data.dose || "").trim(),
       $timeOfDay: "00:00",
