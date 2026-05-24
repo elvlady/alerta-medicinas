@@ -1819,7 +1819,27 @@ html body .back-button {
 
 html body .treatment-list {
   display: grid;
-  gap: 10px;
+  gap: 2px;
+  margin: 0 -10px;
+  padding: 0 10px 14px;
+  overflow: visible;
+}
+
+html body .treatment-row {
+  position: relative;
+  overflow: visible;
+  padding: 4px 0 10px;
+}
+
+html body .treatment-row .swipe-shell {
+  overflow: visible;
+  border-radius: 24px;
+  margin-bottom: 0;
+}
+
+html body .treatment-row .swipe-actions {
+  right: 0;
+  border-radius: 24px;
 }
 
 html body .treatment-card {
@@ -1832,11 +1852,15 @@ html body .treatment-card {
   border: 0;
   border-radius: 24px;
   background: #ffffff;
-  box-shadow: 0 8px 20px rgba(31, 43, 61, .06);
+  box-shadow: 0 12px 28px rgba(31, 43, 61, .09);
   padding: 16px;
   text-align: left;
   touch-action: pan-y;
   user-select: none;
+}
+
+html body .treatment-row.actions-open .treatment-card {
+  box-shadow: 0 8px 18px rgba(31, 43, 61, .08);
 }
 
 html body .treatment-card:focus-visible {

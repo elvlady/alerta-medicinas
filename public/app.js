@@ -553,7 +553,7 @@ function createTreatmentCard(treatment) {
     <div class="swipe-shell">
       <div class="swipe-actions" aria-label="Acciones de ${escapeHtml(treatment.name)}">
         <button type="button" data-action="edit">Editar</button>
-        <button type="button" class="danger" data-action="delete">Eliminar</button>
+        <button type="button" class="danger" data-action="delete">Borrar</button>
       </div>
       <div class="treatment-card" data-swipe-card role="button" tabindex="0">
         <span>
