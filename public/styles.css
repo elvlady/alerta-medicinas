@@ -1944,3 +1944,128 @@ html body .treatment-card em {
     grid-column: 1 / -1;
   }
 }
+
+/* Touch-friendly modal polish. */
+html body.form-open .medicine-panel,
+html body.treatment-form-open .treatment-panel {
+  padding: 18px;
+}
+
+html body .medicine-panel .form-heading,
+html body .treatment-panel .form-heading {
+  min-height: 64px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+html body .medicine-panel .form-heading h2,
+html body .treatment-panel .form-heading h2 {
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+html body #close-form-button,
+html body #treatment-close-form-button {
+  min-width: 48px;
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+html body .medicine-form,
+html body .treatment-form {
+  gap: 16px 12px;
+}
+
+html body .medicine-form label span,
+html body .treatment-form label span {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+html body .medicine-form input,
+html body .treatment-form input {
+  min-height: 48px;
+  border-radius: 15px;
+  padding: 12px 14px;
+}
+
+html body .medicine-form .checkline {
+  min-height: 48px;
+  gap: 10px;
+}
+
+html body .medicine-form .checkline input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+}
+
+html body .form-actions {
+  gap: 12px;
+  margin-top: 6px;
+}
+
+html body #save-button,
+html body #treatment-save-button {
+  min-height: 60px;
+  border-radius: 18px;
+}
+
+html body #cancel-edit {
+  min-height: 52px;
+  border-radius: 16px;
+}
+
+@media (max-width: 620px) {
+  html body.form-open .medicine-panel,
+  html body.treatment-form-open .treatment-panel {
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 20px);
+    padding: 18px;
+  }
+
+  html body .medicine-panel .form-heading,
+  html body .treatment-panel .form-heading {
+    margin: -18px -18px 18px;
+    padding: 18px;
+  }
+
+  html body .medicine-form,
+  html body .treatment-form {
+    gap: 18px 12px;
+  }
+
+  html body .medicine-form label span,
+  html body .treatment-form label span {
+    min-height: 17px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  html body .medicine-form input,
+  html body .treatment-form input {
+    min-height: 52px;
+    border-radius: 16px;
+    font-size: 16px;
+    padding: 13px 14px;
+  }
+
+  html body #medicine-start-time {
+    min-height: 52px;
+    font-size: 16px;
+  }
+
+  html body .medicine-form .checkline {
+    min-height: 52px;
+    margin-top: 0;
+  }
+
+  html body #save-button,
+  html body #treatment-save-button {
+    min-height: 62px;
+  }
+}
