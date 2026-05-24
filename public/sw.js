@@ -16,6 +16,8 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(self.registration.showNotification(payload.title, {
     body: payload.body,
+    icon: payload.icon || "/iconos/android/mipmap-xxxhdpi/ic_launcher.png",
+    badge: payload.badge || "/iconos/android/mipmap-hdpi/ic_launcher.png",
     tag: payload.tag,
     renotify: true,
     data: { url: payload.url || "/" },
