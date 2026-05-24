@@ -14,6 +14,7 @@ const state = {
 };
 
 const SWIPE_ACTION_WIDTH = 138;
+const SWIPE_RELEASE_CLICK_MS = 450;
 const CLIENT_ID_KEY = "alerta_medicinas_client_id";
 const SPLASH_RELOAD_KEY = "alerta_medicinas_splash_reload";
 let serviceWorkerRegistrationPromise = null;
@@ -386,7 +387,7 @@ function lastScheduleDate() {
 function closeSwipeRow(row) {
   row.classList.remove("actions-open");
   row.dataset.swipeX = "0";
-  delete row.dataset.justSwipedOpen;
+  delete row.dataset.justSwipedOpenAt;
   delete row.dataset.closeOnlyClick;
   const card = row.querySelector("[data-swipe-card]");
   if (card) {
@@ -406,6 +407,13 @@ function setSwipeOffset(row, card, offset) {
   card.style.transform = nextOffset ? `translateX(${-nextOffset}px)` : "";
 }
 
+function consumeSwipeReleaseClick(row) {
+  const openedAt = Number(row.dataset.justSwipedOpenAt || 0);
+  if (!openedAt) return false;
+  delete row.dataset.justSwipedOpenAt;
+  return Date.now() - openedAt < SWIPE_RELEASE_CLICK_MS;
+}
+
 function setupSwipe(row, card) {
   let startX = 0;
   let startY = 0;
@@ -413,6 +421,7 @@ function setupSwipe(row, card) {
   let pointerId = null;
   let dragging = false;
   let suppressClick = false;
+  let suppressClickUntil = 0;
 
   const finishSwipe = (event) => {
     if (pointerId !== event.pointerId) return;
@@ -421,12 +430,13 @@ function setupSwipe(row, card) {
     if (dragging && offset > SWIPE_ACTION_WIDTH * 0.42) {
       row.classList.add("actions-open");
       row.dataset.swipeX = String(SWIPE_ACTION_WIDTH);
-      row.dataset.justSwipedOpen = "1";
+      row.dataset.justSwipedOpenAt = String(Date.now());
       card.style.transform = "";
     } else {
       closeSwipeRow(row);
     }
     suppressClick = dragging;
+    suppressClickUntil = dragging ? Date.now() + SWIPE_RELEASE_CLICK_MS : 0;
     pointerId = null;
     dragging = false;
   };
@@ -458,9 +468,13 @@ function setupSwipe(row, card) {
   card.addEventListener("pointercancel", finishSwipe);
   card.addEventListener("click", (event) => {
     if (suppressClick) {
+      const shouldIgnore = Date.now() < suppressClickUntil;
       suppressClick = false;
-      event.preventDefault();
-      return;
+      suppressClickUntil = 0;
+      if (shouldIgnore) {
+        event.preventDefault();
+        return;
+      }
     }
     if (row.classList.contains("actions-open")) closeSwipeRow(row);
   });
@@ -611,8 +625,7 @@ function createTreatmentCard(treatment) {
     }
   });
   card.addEventListener("click", (event) => {
-    if (row.dataset.justSwipedOpen === "1") {
-      delete row.dataset.justSwipedOpen;
+    if (consumeSwipeReleaseClick(row)) {
       event.preventDefault();
       return;
     }
