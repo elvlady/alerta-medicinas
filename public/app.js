@@ -15,8 +15,42 @@ const state = {
 
 const SWIPE_ACTION_WIDTH = 138;
 const CLIENT_ID_KEY = "alerta_medicinas_client_id";
+const SPLASH_RELOAD_KEY = "alerta_medicinas_splash_reload";
+let serviceWorkerRegistrationPromise = null;
 
 const $ = (selector) => document.querySelector(selector);
+
+function markAppReady() {
+  window.__alertaAppReady = true;
+  if (typeof window.__alertaSplashDone === "function") {
+    window.__alertaSplashDone();
+  }
+  try {
+    sessionStorage.removeItem(SPLASH_RELOAD_KEY);
+  } catch {
+    // Ignore storage restrictions in private browsing.
+  }
+
+  const splash = document.getElementById("splash-screen");
+  if (!splash || splash.hidden) return;
+  splash.classList.add("is-done");
+  window.setTimeout(() => {
+    splash.hidden = true;
+  }, 260);
+}
+
+function registerServiceWorker() {
+  if (serviceWorkerRegistrationPromise) return serviceWorkerRegistrationPromise;
+  if (!window.isSecureContext || !("serviceWorker" in navigator)) {
+    return Promise.resolve(null);
+  }
+
+  serviceWorkerRegistrationPromise = navigator.serviceWorker.register("/sw.js").catch((error) => {
+    serviceWorkerRegistrationPromise = null;
+    throw error;
+  });
+  return serviceWorkerRegistrationPromise;
+}
 
 function randomClientId() {
   if (window.crypto?.randomUUID) return window.crypto.randomUUID();
@@ -828,7 +862,10 @@ function subscriptionMatchesCurrentKey(subscription) {
 }
 
 async function pushRegistration() {
-  const registration = await navigator.serviceWorker.register("/sw.js");
+  const registration = await registerServiceWorker();
+  if (!registration) {
+    throw new Error("Este navegador no soporta service worker por HTTPS.");
+  }
   await navigator.serviceWorker.ready;
   return registration;
 }
@@ -947,6 +984,7 @@ async function boot() {
   state.user = me.user;
   state.pushPublicKey = me.pushPublicKey;
   showApp();
+  markAppReady();
   setView("treatments");
   refreshPushSwitch();
   await loadTreatments();
@@ -979,8 +1017,11 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshDateLabels();
 });
 
+registerServiceWorker().catch((error) => console.warn(error));
+
 boot().catch((error) => {
   showApp();
+  markAppReady();
   const list = $("#treatment-list");
   list.innerHTML = "";
   const empty = document.createElement("div");
