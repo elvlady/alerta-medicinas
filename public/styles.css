@@ -461,6 +461,22 @@ label span {
   text-align: center;
 }
 
+.treatment-empty-state {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.treatment-empty-state span {
+  display: block;
+}
+
+.treatment-empty-state .empty-action {
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 12px 18px;
+}
+
 @media (max-width: 860px) {
   .medicine-form {
     grid-template-columns: 1fr 1fr;
@@ -1655,10 +1671,18 @@ html body .form-actions {
 }
 
 html body #medicine-start-time {
+  width: 118px;
+  min-height: 42px;
+  height: 42px;
   font-size: 15px;
   padding-left: 8px;
   padding-right: 8px;
   text-align: center;
+}
+
+html body .medicine-form .time-field {
+  width: 132px;
+  max-width: 100%;
 }
 
 html body .schedule-item.completed .schedule-card {
@@ -1728,10 +1752,16 @@ html body .schedule-item.completed .schedule-details span {
   }
 
   html body #medicine-start-time {
+    width: 112px;
     min-height: 42px;
+    height: 42px;
     font-size: 15px;
     padding-left: 6px;
     padding-right: 6px;
+  }
+
+  html body .medicine-form .time-field {
+    width: 118px;
   }
 
   html body .medicine-form .checkline {
@@ -2030,6 +2060,12 @@ html body .treatment-card em {
     font-size: 16px;
     padding: 10px 12px;
   }
+
+  html body .treatment-form input[type="date"] {
+    font-size: 14px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 @media (max-width: 360px) {
@@ -2153,8 +2189,10 @@ html body #cancel-edit {
   }
 
   html body #medicine-start-time {
-    min-height: 52px;
-    font-size: 16px;
+    width: 112px;
+    min-height: 42px;
+    height: 42px;
+    font-size: 15px;
   }
 
   html body .medicine-form .checkline {
@@ -2165,6 +2203,15 @@ html body #cancel-edit {
   html body #save-button,
   html body #treatment-save-button {
     min-height: 62px;
+  }
+
+  html body .treatment-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .treatment-form label,
+  html body .treatment-form .form-actions {
+    grid-column: 1 / -1 !important;
   }
 }
 

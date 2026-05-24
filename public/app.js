@@ -146,11 +146,12 @@ function medicinePayload() {
     intervalHours: Number($("#medicine-interval").value),
     durationDays: Number($("#medicine-duration").value),
     notes: $("#medicine-notes").value.trim(),
-    active: $("#medicine-active").checked,
+    active: true,
   };
 }
 
 function dateInputValue(value = new Date()) {
+  if (value === "" || value === null) return "";
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return dateInputValue(new Date());
   const year = date.getFullYear();
@@ -169,11 +170,10 @@ function treatmentPayload() {
 
 function resetTreatmentForm() {
   const today = new Date();
-  const end = addDays(today, 6);
   $("#treatment-id").value = "";
   $("#treatment-form").reset();
   $("#treatment-start-date").value = dateInputValue(today);
-  $("#treatment-end-date").value = dateInputValue(end);
+  $("#treatment-end-date").value = "";
   $("#treatment-save-button").textContent = "Guardar";
   $("#treatment-form-title").textContent = "Nuevo tratamiento";
 }
@@ -195,7 +195,6 @@ function resetMedicineForm() {
   $("#medicine-start-time").value = timeInputValue();
   $("#medicine-interval").value = "8";
   $("#medicine-duration").value = "7";
-  $("#medicine-active").checked = true;
   $("#save-button").textContent = "Guardar";
   $("#form-title").textContent = "Nueva medicina";
   $("#cancel-edit").hidden = true;
@@ -214,7 +213,6 @@ function editMedicine(medicine) {
   $("#medicine-interval").value = medicine.intervalHours || 8;
   $("#medicine-duration").value = medicine.durationDays || 7;
   $("#medicine-notes").value = medicine.notes || "";
-  $("#medicine-active").checked = medicine.active;
   $("#save-button").textContent = "Actualizar";
   $("#form-title").textContent = "Editar medicina";
   $("#cancel-edit").hidden = false;
@@ -298,7 +296,9 @@ function formatDate(value) {
 }
 
 function treatmentRange(treatment) {
-  return `${formatDate(treatment.startAt)} - ${formatDate(treatment.endAt)}`;
+  const start = formatDate(treatment.startAt);
+  const end = formatDate(treatment.endAt);
+  return end ? `${start} - ${end}` : `Desde ${start}`;
 }
 
 function timeInputValue(value = new Date()) {
@@ -645,8 +645,15 @@ function renderTreatments() {
 
   if (!state.treatments.length) {
     const empty = document.createElement("div");
-    empty.className = "empty-state";
-    empty.textContent = "Crea tu primer tratamiento.";
+    empty.className = "empty-state treatment-empty-state";
+    empty.innerHTML = `
+      <span>Crea tu primer tratamiento.</span>
+      <button type="button" class="primary empty-action">Agregar Tratamiento</button>
+    `;
+    empty.querySelector("button").addEventListener("click", () => {
+      resetTreatmentForm();
+      setTreatmentFormOpen(true);
+    });
     list.append(empty);
     return;
   }

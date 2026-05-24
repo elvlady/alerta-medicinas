@@ -418,7 +418,9 @@ function normalizeTreatmentDateInput(data, key, label, endOfDate = false) {
     else date.setHours(0, 0, 0, 0);
     return date.toISOString();
   }
-  return normalizeDateInput(data[key === "start" ? "startDate" : "endDate"], label, endOfDate);
+  const dateText = String(data[key === "start" ? "startDate" : "endDate"] || "").trim();
+  if (key === "end" && !dateText) return "";
+  return normalizeDateInput(dateText, label, endOfDate);
 }
 
 function treatmentEndAt(row) {
@@ -797,7 +799,7 @@ async function handleApi(req, url) {
     const timestamp = nowIso();
     const startAt = normalizeTreatmentDateInput(data, "start", "Fecha inicio");
     const endAt = normalizeTreatmentDateInput(data, "end", "Fecha termino", true);
-    if (Date.parse(endAt) < Date.parse(startAt)) {
+    if (endAt && Date.parse(endAt) < Date.parse(startAt)) {
       throw new AppError(400, "Fecha termino debe ser igual o posterior a fecha inicio.");
     }
 
@@ -827,7 +829,7 @@ async function handleApi(req, url) {
     const timestamp = nowIso();
     const startAt = normalizeTreatmentDateInput(data, "start", "Fecha inicio");
     const endAt = normalizeTreatmentDateInput(data, "end", "Fecha termino", true);
-    if (Date.parse(endAt) < Date.parse(startAt)) {
+    if (endAt && Date.parse(endAt) < Date.parse(startAt)) {
       throw new AppError(400, "Fecha termino debe ser igual o posterior a fecha inicio.");
     }
 

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Alerta Medicinas">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=31">
+  <link rel="manifest" href="/manifest.webmanifest?v=32">
   <link rel="preload" as="image" href="/iconos/android/mipmap-xxxhdpi/ic_launcher.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/iconos/Assets.xcassets/AppIcon.appiconset/16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/iconos/Assets.xcassets/AppIcon.appiconset/32.png">
@@ -101,8 +101,8 @@
       100% { transform: translateX(250%); }
     }
   </style>
-  <link rel="stylesheet" href="/styles.css?v=31">
-  <script type="module" src="/app.js?v=31"></script>
+  <link rel="stylesheet" href="/styles.css?v=32">
+  <script type="module" src="/app.js?v=32"></script>
 </head>
 <body>
   <section class="splash-screen" id="splash-screen" role="status" aria-live="polite">
@@ -240,8 +240,8 @@
             <input id="treatment-start-date" type="date" required>
           </label>
           <label class="field-compact">
-            <span>Fecha termino</span>
-            <input id="treatment-end-date" type="date" required>
+            <span>Fecha termino opcional</span>
+            <input id="treatment-end-date" type="date">
           </label>
           <div class="form-actions">
             <button class="primary" type="submit" id="treatment-save-button">Guardar</button>
@@ -267,7 +267,7 @@
             <span>Dosis</span>
             <input id="medicine-dose" placeholder="1 tableta">
           </label>
-          <label class="field-compact">
+          <label class="field-compact time-field">
             <span>Hora de inicio</span>
             <input id="medicine-start-time" type="time" required>
           </label>
@@ -282,10 +282,6 @@
           <label class="field-full">
             <span>Notas</span>
             <input id="medicine-notes" placeholder="Despues de comer">
-          </label>
-          <label class="checkline">
-            <input id="medicine-active" type="checkbox" checked>
-            <span>Activa</span>
           </label>
           <div class="form-actions">
             <button class="primary" type="submit" id="save-button">Guardar</button>
