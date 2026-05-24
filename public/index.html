@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Alerta Medicinas">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=39">
+  <link rel="manifest" href="/manifest.webmanifest?v=40">
   <link rel="preload" as="image" href="/iconos/logo.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/iconos/Assets.xcassets/AppIcon.appiconset/16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/iconos/Assets.xcassets/AppIcon.appiconset/32.png">
@@ -101,8 +101,8 @@
       100% { transform: translateX(250%); }
     }
   </style>
-  <link rel="stylesheet" href="/styles.css?v=39">
-  <script type="module" src="/app.js?v=39"></script>
+  <link rel="stylesheet" href="/styles.css?v=40">
+  <script type="module" src="/app.js?v=40"></script>
 </head>
 <body>
   <section class="splash-screen" id="splash-screen" role="status" aria-live="polite">
@@ -235,7 +235,7 @@
           <input type="hidden" id="treatment-id">
           <label class="field-full">
             <span>Nombre</span>
-            <input id="treatment-name" required placeholder="Antibiotico">
+            <input id="treatment-name" required>
           </label>
           <label class="field-compact">
             <span>Fecha inicio</span>
@@ -263,11 +263,11 @@
           <input type="hidden" id="medicine-id">
           <label class="field-full">
             <span>Nombre</span>
-            <input id="medicine-name" required placeholder="Metformina">
+            <input id="medicine-name" required>
           </label>
           <label class="field-full">
             <span>Dosis</span>
-            <input id="medicine-dose" placeholder="1 tableta">
+            <input id="medicine-dose">
           </label>
           <label class="field-compact time-field">
             <span>Hora de inicio</span>
@@ -275,15 +275,15 @@
           </label>
           <label class="field-compact">
             <span>Cada horas</span>
-            <input id="medicine-interval" type="number" min="1" max="168" required placeholder="8">
+            <input id="medicine-interval" type="number" min="1" max="168" required>
           </label>
           <label class="field-compact">
             <span>Por tantos dias</span>
-            <input id="medicine-duration" type="number" min="1" max="3650" required placeholder="7">
+            <input id="medicine-duration" type="number" min="1" max="3650" required>
           </label>
           <label class="field-full">
             <span>Notas opcional</span>
-            <input id="medicine-notes" placeholder="Despues de comer">
+            <input id="medicine-notes">
           </label>
           <div class="form-actions">
             <button class="primary" type="submit" id="save-button">Guardar</button>

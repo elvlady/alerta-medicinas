@@ -1,10 +1,10 @@
-const APP_CACHE = "alerta-medicinas-v39";
+const APP_CACHE = "alerta-medicinas-v40";
 const APP_SHELL = [
   "/",
   "/index.html",
-  "/manifest.webmanifest?v=39",
-  "/styles.css?v=39",
-  "/app.js?v=39",
+  "/manifest.webmanifest?v=40",
+  "/styles.css?v=40",
+  "/app.js?v=40",
   "/iconos/logo.png",
   "/iconos/android/mipmap-hdpi/ic_launcher.png",
   "/iconos/android/mipmap-xxxhdpi/ic_launcher.png",
