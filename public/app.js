@@ -432,7 +432,7 @@ function setupSwipe(row, card) {
       row.dataset.swipeX = String(SWIPE_ACTION_WIDTH);
       row.dataset.justSwipedOpenAt = String(Date.now());
       card.style.transform = "";
-    } else {
+    } else if (dragging) {
       closeSwipeRow(row);
     }
     suppressClick = dragging;
