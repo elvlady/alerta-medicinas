@@ -2275,6 +2275,7 @@ html body .top-brand img {
   justify-self: start;
   align-self: center;
   border-radius: 12px;
+  background-color: royalblue;
   box-shadow: 0 8px 18px rgba(31, 43, 61, .1);
 }
 
