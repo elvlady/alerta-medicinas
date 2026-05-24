@@ -2069,3 +2069,41 @@ html body #cancel-edit {
     min-height: 62px;
   }
 }
+
+/* Distinguish the top-level treatments list from the treatment detail. */
+html body:not(.detail-view) {
+  background: #f7f9f8;
+}
+
+html body:not(.detail-view) .app-view {
+  background: #f7f9f8;
+}
+
+html body.detail-view,
+html body.detail-view .app-view {
+  background: #eef3fb;
+}
+
+html body:not(.detail-view) .topbar {
+  background: rgba(247, 249, 248, .94);
+}
+
+html body.detail-view .topbar {
+  background: rgba(238, 243, 251, .94);
+}
+
+html body:not(.detail-view) .fab-button {
+  width: 68px;
+  height: 68px;
+  border-radius: 24px;
+  background: #177d6b;
+  box-shadow: 0 16px 34px rgba(23, 125, 107, .32);
+}
+
+html body.detail-view .fab-button {
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: var(--accent);
+  box-shadow: 0 16px 34px rgba(49, 103, 189, .34);
+}

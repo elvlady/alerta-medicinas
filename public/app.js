@@ -533,6 +533,9 @@ function createDayAccordion(group, index) {
 function setView(view) {
   state.view = view;
   document.body.classList.toggle("detail-view", view === "detail");
+  const fab = $("#fab-button");
+  fab.setAttribute("aria-label", view === "detail" ? "Agregar medicina" : "Agregar tratamiento");
+  fab.title = view === "detail" ? "Agregar medicina" : "Agregar tratamiento";
   if (view === "treatments") {
     state.selectedTreatmentId = "";
     state.medicines = [];
