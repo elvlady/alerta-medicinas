@@ -565,14 +565,28 @@ function createTreatmentCard(treatment) {
     </div>
   `;
   const card = row.querySelector("[data-swipe-card]");
-  card.addEventListener("click", () => {
-    if (row.classList.contains("actions-open")) return;
+  card.addEventListener("pointerdown", () => {
+    if (row.classList.contains("actions-open")) {
+      row.dataset.closeOnlyClick = "1";
+    }
+  });
+  card.addEventListener("click", (event) => {
+    if (row.dataset.closeOnlyClick === "1" || row.classList.contains("actions-open")) {
+      delete row.dataset.closeOnlyClick;
+      event.preventDefault();
+      closeSwipeRow(row);
+      return;
+    }
     enterTreatment(treatment.id);
   });
   card.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    if (!row.classList.contains("actions-open")) enterTreatment(treatment.id);
+    if (row.classList.contains("actions-open")) {
+      closeSwipeRow(row);
+      return;
+    }
+    enterTreatment(treatment.id);
   });
   row.querySelector('[data-action="edit"]').addEventListener("click", (event) => {
     event.stopPropagation();
