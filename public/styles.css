@@ -2268,14 +2268,19 @@ html body .top-brand {
 }
 
 html body .top-brand img {
+  grid-column: 1;
+  grid-row: 1;
   width: 38px;
   height: 38px;
-  justify-self: center;
+  justify-self: start;
+  align-self: center;
   border-radius: 12px;
   box-shadow: 0 8px 18px rgba(31, 43, 61, .1);
 }
 
 html body .top-brand div {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   align-self: center;
 }
@@ -2295,6 +2300,8 @@ html body .top-brand h1 {
 }
 
 html body .top-actions {
+  grid-column: 3;
+  grid-row: 1;
   width: auto;
   align-self: center;
   justify-self: end;
