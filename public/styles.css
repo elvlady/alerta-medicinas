@@ -2246,6 +2246,14 @@ html body:not(.detail-view) .fab-button {
   box-shadow: 0 16px 34px rgba(23, 125, 107, .32);
 }
 
+html body:not(.detail-view) .treatment-empty-state .empty-action,
+html body #treatment-save-button {
+  border-color: #177d6b;
+  background: #177d6b;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(23, 125, 107, .24);
+}
+
 html body.detail-view .fab-button {
   width: 64px;
   height: 64px;
