@@ -1981,6 +1981,7 @@ html body .treatment-card {
   border-radius: 24px;
   background: #ffffff;
   box-shadow: 0 12px 28px rgba(31, 43, 61, .09);
+  cursor: pointer;
   padding: 16px;
   text-align: left;
   touch-action: pan-y;
