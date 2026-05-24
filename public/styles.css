@@ -2258,7 +2258,7 @@ html body.detail-view .fab-button {
 html body .topbar {
   min-height: 76px;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 50px;
+  grid-template-columns: 42px minmax(0, 1fr) 82px;
   align-items: center;
   gap: 10px;
   padding-top: 13px;
@@ -2305,10 +2305,22 @@ html body .top-actions {
   grid-column: 3;
   grid-row: 1;
   width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   align-self: center;
   justify-self: end;
   justify-content: flex-end;
   padding-top: 0;
+}
+
+html body .notification-icon {
+  width: 22px;
+  height: 22px;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 html body #push-button.push-switch {
@@ -2344,7 +2356,7 @@ html body #push-button.push-switch.is-on .switch-thumb {
 @media (max-width: 560px) {
   html body .topbar {
     min-height: 72px;
-    grid-template-columns: 38px minmax(0, 1fr) 50px;
+    grid-template-columns: 38px minmax(0, 1fr) 78px;
     align-items: center;
     gap: 9px;
     padding: 12px 14px 10px;
@@ -2354,6 +2366,11 @@ html body #push-button.push-switch.is-on .switch-thumb {
     width: 34px;
     height: 34px;
     border-radius: 11px;
+  }
+
+  html body .notification-icon {
+    width: 20px;
+    height: 20px;
   }
 
   html body .top-brand h1 {
