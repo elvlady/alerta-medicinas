@@ -1,6 +1,6 @@
 {
   "name": "Alerta Medicinas",
-  "short_name": "Alertas",
+  "short_name": "Alerta Medicinas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
