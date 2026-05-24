@@ -1671,7 +1671,7 @@ html body .form-actions {
 }
 
 html body #medicine-start-time {
-  width: 118px;
+  width: 130px;
   min-height: 42px;
   height: 42px;
   font-size: 15px;
@@ -1681,7 +1681,7 @@ html body #medicine-start-time {
 }
 
 html body .medicine-form .time-field {
-  width: 132px;
+  width: 144px;
   max-width: 100%;
 }
 
@@ -1752,7 +1752,7 @@ html body .schedule-item.completed .schedule-details span {
   }
 
   html body #medicine-start-time {
-    width: 112px;
+    width: 124px;
     min-height: 42px;
     height: 42px;
     font-size: 15px;
@@ -1761,7 +1761,7 @@ html body .schedule-item.completed .schedule-details span {
   }
 
   html body .medicine-form .time-field {
-    width: 118px;
+    width: 130px;
   }
 
   html body .medicine-form .checkline {
@@ -2189,7 +2189,7 @@ html body #cancel-edit {
   }
 
   html body #medicine-start-time {
-    width: 112px;
+    width: 124px;
     min-height: 42px;
     height: 42px;
     font-size: 15px;
