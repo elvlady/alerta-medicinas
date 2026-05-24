@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Alerta Medicinas">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Alerta Medicinas</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=33">
+  <link rel="manifest" href="/manifest.webmanifest?v=34">
   <link rel="preload" as="image" href="/iconos/android/mipmap-xxxhdpi/ic_launcher.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/iconos/Assets.xcassets/AppIcon.appiconset/16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/iconos/Assets.xcassets/AppIcon.appiconset/32.png">
@@ -101,8 +101,8 @@
       100% { transform: translateX(250%); }
     }
   </style>
-  <link rel="stylesheet" href="/styles.css?v=33">
-  <script type="module" src="/app.js?v=33"></script>
+  <link rel="stylesheet" href="/styles.css?v=34">
+  <script type="module" src="/app.js?v=34"></script>
 </head>
 <body>
   <section class="splash-screen" id="splash-screen" role="status" aria-live="polite">
@@ -204,13 +204,15 @@
 
   <section class="app-view" id="app-view" hidden>
     <header class="topbar">
-      <div>
-        <p class="eyebrow">Recordatorios</p>
-        <h1>Alerta Medicinas</h1>
+      <div class="top-brand">
+        <img src="/iconos/android/mipmap-xxxhdpi/ic_launcher.png" width="192" height="192" alt="">
+        <div>
+          <p class="eyebrow">Recordatorios</p>
+          <h1>Alerta Medicinas</h1>
+        </div>
       </div>
       <div class="top-actions">
-        <button type="button" id="push-button" class="push-switch" aria-pressed="false">
-          <span>Alertas</span>
+        <button type="button" id="push-button" class="push-switch" aria-pressed="false" aria-label="Activar notificaciones">
           <span class="switch-track" aria-hidden="true">
             <span class="switch-thumb"></span>
           </span>
