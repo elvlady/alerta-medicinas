@@ -386,6 +386,8 @@ function lastScheduleDate() {
 function closeSwipeRow(row) {
   row.classList.remove("actions-open");
   row.dataset.swipeX = "0";
+  delete row.dataset.justSwipedOpen;
+  delete row.dataset.closeOnlyClick;
   const card = row.querySelector("[data-swipe-card]");
   if (card) {
     card.style.transform = "";
@@ -419,6 +421,7 @@ function setupSwipe(row, card) {
     if (dragging && offset > SWIPE_ACTION_WIDTH * 0.42) {
       row.classList.add("actions-open");
       row.dataset.swipeX = String(SWIPE_ACTION_WIDTH);
+      row.dataset.justSwipedOpen = "1";
       card.style.transform = "";
     } else {
       closeSwipeRow(row);
@@ -608,6 +611,11 @@ function createTreatmentCard(treatment) {
     }
   });
   card.addEventListener("click", (event) => {
+    if (row.dataset.justSwipedOpen === "1") {
+      delete row.dataset.justSwipedOpen;
+      event.preventDefault();
+      return;
+    }
     if (row.dataset.closeOnlyClick === "1" || row.classList.contains("actions-open")) {
       delete row.dataset.closeOnlyClick;
       event.preventDefault();
