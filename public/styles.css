@@ -2314,6 +2314,10 @@ html body .top-actions {
   padding-top: 0;
 }
 
+html body .shell {
+  padding-top: 16px;
+}
+
 html body .notification-icon {
   width: 22px;
   height: 22px;
@@ -2360,6 +2364,10 @@ html body #push-button.push-switch.is-on .switch-thumb {
     align-items: center;
     gap: 9px;
     padding: 12px 14px 10px;
+  }
+
+  html body .shell {
+    padding-top: 14px;
   }
 
   html body .top-brand img {
